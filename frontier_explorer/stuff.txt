@@ -1,0 +1,6 @@
+2 types of "no frontiers left":
+1. the bfs detected 0 frontiers --> mapping success
+2. the bfs detected frontiers but they are all in the black list --> mapping failed
+    - restart mapping from current position
+
+

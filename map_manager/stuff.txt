@@ -1,0 +1,7 @@
+service:
+receive service call to load the map
+if there is a saved map, send the map to the client
+if there is no map, call the frontier explorer action and make a map then send it to the client
+
+Errors:
+[ERROR] [map_io]: Failed to write map for reason: Magick: No encode delegate for this image format (PACKAGE) reported by magick/constitute.c:2320 (WriteImage)
