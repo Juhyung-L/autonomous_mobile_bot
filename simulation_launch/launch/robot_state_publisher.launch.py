@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('mobile_bot')
+    pkg_share = get_package_share_directory('simulation_launch')
     urdf_file = os.path.join(pkg_share, 'models', 'model.urdf')
     with open(urdf_file, 'r') as infp:
         robot_desc = infp.read()

@@ -7,7 +7,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('mobile_bot')
+    pkg_share = get_package_share_directory('simulation_launch')
     launch_file_dir = os.path.join(pkg_share, 'launch')
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
 

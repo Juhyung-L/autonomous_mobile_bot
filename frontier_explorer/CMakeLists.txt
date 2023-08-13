@@ -41,20 +41,20 @@ set(dependencies
   mobile_bot_msgs
 )
 
-# add_executable(start_frontier_explorer src/frontier_explorer_node.cpp src/frontier_search.cpp)
-# ament_target_dependencies(start_frontier_explorer ${dependencies})
+add_executable(start_frontier_explorer src/frontier_explorer_node.cpp src/frontier_search.cpp)
+ament_target_dependencies(start_frontier_explorer ${dependencies})
 
-# compiling action server
-add_executable(run_autoslam_action_server src/frontier_explorer_node.cpp src/frontier_search.cpp)
-target_include_directories(run_autoslam_action_server PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_definitions(run_autoslam_action_server PRIVATE "CPP_ACTION_TUTORIALS_BUILDING_DLL")
-ament_target_dependencies(run_autoslam_action_server ${dependencies})
+# # compiling action server
+# add_executable(run_autoslam_action_server src/frontier_explorer_node.cpp src/frontier_search.cpp)
+# target_include_directories(run_autoslam_action_server PRIVATE
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#   $<INSTALL_INTERFACE:include>)
+# target_compile_definitions(run_autoslam_action_server PRIVATE "CPP_ACTION_TUTORIALS_BUILDING_DLL")
+# ament_target_dependencies(run_autoslam_action_server ${dependencies})
 
 install(TARGETS 
-  # start_frontier_explorer
-  run_autoslam_action_server
+  start_frontier_explorer
+  # run_autoslam_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -9,7 +9,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('mobile_bot')
+    pkg_share = get_package_share_directory('simulation_launch')
 
     size_weight = LaunchConfiguration('size_weight')
     distance_weight = LaunchConfiguration('distance_weight')

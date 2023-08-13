@@ -12,6 +12,12 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
+find_package(mobile_bot_msgs REQUIRED)
+
+set(dependencies
+  rclcpp
+  nav2_map_server
+  mobile_bot_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -26,7 +32,7 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(start_map_manager src/map_manager_node.cpp)
-ament_target_dependencies(start_map_manager nav2_map_server)
+ament_target_dependencies(start_map_manager ${dependencies})
 target_link_libraries(start_map_manager stdc++fs) # add filesystem to executable
 
 install(TARGETS
