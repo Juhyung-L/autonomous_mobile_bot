@@ -1,10 +1,14 @@
-#include<unistd.h>
+#include <unistd.h>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 
 #include"SDL.h"
 
+namespace keyboard_teleop
+{
+    
 void cleanUp() {
   SDL_Quit();
   rclcpp::shutdown();
@@ -125,3 +129,5 @@ int main(int argc, char** argv) {
   return 0;
 
 }
+
+} // namespace keyboard_teleop

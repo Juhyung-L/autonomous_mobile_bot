@@ -11,6 +11,17 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(SDL2 REQUIRED)
 
+set(dependencies
+  rclcpp
+  geometry_msgs
+)
+
+include_directories(${SDL2_INCLUDE_DIRS})
+
+add_executable(keyboard_teleop src/main.cpp)
+ament_target_dependencies(keyboard_teleop ${dependencies})
+target_link_libraries(keyboard_teleop ${SDL2_LIBRARIES})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -23,13 +34,8 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-include_directories(${SDL2_INCLUDE_DIRS})
-add_executable(start_keyboard_teleop src/keyboard_teleop_node.cpp)
-ament_target_dependencies(start_keyboard_teleop rclcpp geometry_msgs)
-target_link_libraries(start_keyboard_teleop ${SDL2_LIBRARIES})
-
 install(TARGETS 
-  start_keyboard_teleop
+  keyboard_teleop
   DESTINATION lib/${PROJECT_NAME}
 )
 

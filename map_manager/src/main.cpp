@@ -2,17 +2,17 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "nav2_map_server/map_mode.hpp"
 #include "nav2_map_server/map_saver.hpp"
-#include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
-#include "mobile_bot_msgs/action/autonomous_slam.hpp"
+// #include "mobile_bot_msgs/action/autonomous_slam.hpp"
+#include "lifecycle_manager/lifecycle_manager_client.hpp"
 
 #include <filesystem>
 
 using namespace nav2_map_server;
 using namespace std::placeholders;
-using AutoSlam = mobile_bot_msgs::action::AutonomousSlam;
-using GoalHandleAutoSlam = rclcpp_action::ClientGoalHandle<AutoSlam>;
+// using AutoSlam = mobile_bot_msgs::action::AutonomousSlam;
+// using GoalHandleAutoSlam = rclcpp_action::ClientGoalHandle<AutoSlam>;
 
 
 // potential parameters
@@ -157,73 +157,101 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     
     auto logger = rclcpp::get_logger("main_app");
-    uint8_t helper_index;
+    // uint8_t helper_index;
 
-    // check if map is saved
-    std::string package_path;
-    std::string map_file_path;
-    std::string image_format("png");
-    try
-    {
-        package_path = ament_index_cpp::get_package_share_directory("map_manager");
-    }
-    catch (const std::runtime_error& e)
-    {
-        RCLCPP_ERROR(logger, "Failed to get package share directory: %s", e.what());
-        return -1;
-    }
-    map_file_path = package_path + "/map/map";
+    // // check if map is saved
+    // std::string package_path;
+    // std::string map_file_path;
+    // std::string image_format("png");
+    // try
+    // {
+    //     package_path = ament_index_cpp::get_package_share_directory("map_manager");
+    // }
+    // catch (const std::runtime_error& e)
+    // {
+    //     RCLCPP_ERROR(logger, "Failed to get package share directory: %s", e.what());
+    //     return -1;
+    // }
+    // map_file_path = package_path + "/map/map";
 
-    std::filesystem::path fs_map_file_path(map_file_path + "." + image_format);
-    if (std::filesystem::exists(fs_map_file_path)) // map file exists
-    {
-        helper_index = 0;
-    }
-    else // map file doesn't exist
-    {
-        helper_index = 1;
-    }
+    // std::filesystem::path fs_map_file_path(map_file_path + "." + image_format);
+    // if (std::filesystem::exists(fs_map_file_path)) // map file exists
+    // {
+    //     helper_index = 0;
+    // }
+    // else // map file doesn't exist
+    // {
+    //     helper_index = 1;
+    // }
 
-    RCLCPP_INFO(logger, helper_msgs[helper_index]);
-    char c = getchar(); // block until user input
-    if (helper_index == 0)
-    {
-        if (c == 'L')
-        {
-            RCLCPP_INFO(logger, "Loading saved map...");
-        }
-        else if (c== 'R')
-        {
-            RCLCPP_INFO(logger, "Calling autonomous slam service...");
-        }
-        else
-        {
-            RCLCPP_ERROR(logger, "Invalid input");
-            rclcpp::shutdown();
-            return -1;
-        }
-    }
-    else if (helper_index == 1)
-    {
-        if (c == 'R')
-        {
-            RCLCPP_INFO(logger, "Calling autonomous mapping service...");
-        }
-        else
-        {
-            RCLCPP_ERROR(logger, "Invalid input");
-            rclcpp::shutdown();
-            return -1;
-        }
-    }
+    // RCLCPP_INFO(logger, helper_msgs[helper_index]);
+    // char c = getchar(); // block until user input
+    // if (helper_index == 0)
+    // {
+    //     if (c == 'L')
+    //     {
+    //         RCLCPP_INFO(logger, "Loading saved map...");
+    //     }
+    //     else if (c== 'R')
+    //     {
+    //         RCLCPP_INFO(logger, "Calling autonomous slam service...");
+    //     }
+    //     else
+    //     {
+    //         RCLCPP_ERROR(logger, "Invalid input");
+    //         rclcpp::shutdown();
+    //         return -1;
+    //     }
+    // }
+    // else if (helper_index == 1)
+    // {
+    //     if (c == 'R')
+    //     {
+    //         RCLCPP_INFO(logger, "Calling autonomous mapping service...");
+    //     }
+    //     else
+    //     {
+    //         RCLCPP_ERROR(logger, "Invalid input");
+    //         rclcpp::shutdown();
+    //         return -1;
+    //     }
+    // }
 
     // remapping route (TODO: make map loading route)
     // start nav2
     auto node = std::make_shared<rclcpp::Node>("main_app");
     auto lifecycle_client =
-        std::make_shared<nav2_lifecycle_manager::LifecycleManagerClient>(
+        std::make_shared<lifecycle_manager::LifecycleManagerClient>(
             "lifecycle_manager_navigation", node);
-    lifecycle_client->startup(); // starts nav2 
+
+    // testing
+    while (rclcpp::ok())
+    {
+        RCLCPP_INFO(logger, "Press a/s to start or stop everything\n"
+                            "Press d to add Slam node to lifecycle manager\n"
+                            "Press q to quit");
+        char d = getchar();
+        if (d == 'a')
+        {
+            lifecycle_client->startup();
+        }
+        else if (d == 's')
+        {
+            lifecycle_client->shutdown();
+        }
+        else if (d == 'd')
+        {
+            lifecycle_client->add_node("async_slam");
+        }
+        else if (d == 'q')
+        {
+            break;
+        }
+        else
+        {
+            RCLCPP_INFO(logger, "Invalid input");
+        }
+    }
     
     // start slam
     // start autonomous mapping

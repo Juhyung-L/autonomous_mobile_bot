@@ -1,0 +1,5 @@
+# service call to add node to the lifecycle manager
+
+string node_name
+---
+bool success

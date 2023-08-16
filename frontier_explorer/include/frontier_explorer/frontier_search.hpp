@@ -1,11 +1,18 @@
-#ifndef FRONTIER_SEARCH_H
-#define FRONTIER_SEARCH_H
+#ifndef FRONTIER_EXPLORER__FRONTIER_SEARCH_HPP_
+#define FRONTIER_EXPLORER__FRONTIER_SEARCH_HPP_
+
+#include <vector>
+#include <string>
+#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/point.hpp"
 #include "nav2_msgs/msg/costmap.hpp"
-#include "visualization_msgs/msg/marker.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
+
+namespace frontier_explorer
+{
 
 static constexpr unsigned char NO_INFORMATION = 255;
 static constexpr unsigned char LETHAL_OBSTACLE = 254;
@@ -162,4 +169,6 @@ private:
         return out;
     }
 };
+
+} // namespace frontier_search
 #endif

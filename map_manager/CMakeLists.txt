@@ -13,11 +13,30 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(mobile_bot_msgs REQUIRED)
+find_package(lifecycle_manager REQUIRED)
+
+# debug
+# message(STATUS "lifecycle_manager_INCLUDE_DIRS = ${lifecycle_manager_INCLUDE_DIRS}")
+# message(STATUS "lifecycle_manager_LIBRARIES = ${lifecycle_manager_LIBRARIES}")
 
 set(dependencies
   rclcpp
   nav2_map_server
-  mobile_bot_msgs)
+  mobile_bot_msgs
+  lifecycle_manager
+)
+
+include_directories(
+  include
+  ${lifecycle_manager_INCLUDE_DIRS}
+)
+
+add_executable(map_manager src/main.cpp)
+ament_target_dependencies(map_manager ${dependencies})
+target_link_libraries(map_manager 
+  stdc++fs 
+  ${lifecycle_manager_LIBRARIES}
+) # add filesystem to executable
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,12 +50,8 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(start_map_manager src/map_manager_node.cpp)
-ament_target_dependencies(start_map_manager ${dependencies})
-target_link_libraries(start_map_manager stdc++fs) # add filesystem to executable
-
 install(TARGETS
-  start_map_manager
+  map_manager
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -45,7 +60,6 @@ install(TARGETS
 # if the source directory's map folder is empty, the map in package share gets deleted
 # install(DIRECTORY
 #   map
-#   DESTINATION share/${PROJECT_NAME}
-# )
+#   DESTINATION share/${PROJECT_NAME})
 
 ament_package()

@@ -1,6 +1,12 @@
 #include <queue>
+#include <numeric>
 
-#include "frontier_explorer/frontier_search.h"
+#include "visualization_msgs/msg/marker.hpp"
+
+#include "frontier_explorer/frontier_search.hpp"
+
+namespace frontier_explorer
+{
 
 static double distanceFormula(double x1, double y1, double x2, double y2)
 {
@@ -298,3 +304,4 @@ void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiersL
     markerPub->publish(markersMsg);
 }
 
+} // namespace frontier_search
