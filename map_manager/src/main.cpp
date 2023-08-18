@@ -227,23 +227,42 @@ int main(int argc, char** argv)
     // testing
     while (rclcpp::ok())
     {
-        RCLCPP_INFO(logger, "Press a/s to start or stop everything\n"
-                            "Press d to add Slam node to lifecycle manager\n"
-                            "Press q to quit");
+        RCLCPP_INFO(logger, "\n"
+                            "Press q/w/e to startup, shutdown, reset everything\n"
+                            "Press a/s to resume or pause everything\n"
+                            "Press z/x to add or remove Slam node\n"
+                            "Press d to quit");
         char d = getchar();
-        if (d == 'a')
+        
+        if (d == 'q')
         {
             lifecycle_client->startup();
         }
-        else if (d == 's')
+        else if (d == 'w')
         {
             lifecycle_client->shutdown();
         }
-        else if (d == 'd')
+        else if (d == 'e')
+        {
+            lifecycle_client->reset();
+        }
+        else if (d == 'a')
+        {
+            lifecycle_client->resume();
+        }
+        else if (d == 's')
+        {
+            lifecycle_client->pause();
+        }
+        else if (d == 'z')
         {
             lifecycle_client->add_node("async_slam");
         }
-        else if (d == 'q')
+        else if (d == 'x')
+        {
+            lifecycle_client->remove_node("async_slam");
+        }
+        else if (d == 'd')
         {
             break;
         }

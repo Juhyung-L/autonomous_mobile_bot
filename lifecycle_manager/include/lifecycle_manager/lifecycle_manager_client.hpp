@@ -23,6 +23,7 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "nav2_util/service_client.hpp"
 #include "mobile_bot_msgs/srv/add_node.hpp"
+#include "mobile_bot_msgs/srv/remove_node.hpp"
 
 namespace lifecycle_manager
 {
@@ -81,9 +82,15 @@ public:
   SystemStatus is_active(const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
   /**
    * @brief Add a lifecycle node to the lifecycle manager
-   * @return true or false (node was successfully added or not)
+   * @return true or false (successfully added or not)
    */
   bool add_node(std::string node_name, 
+    const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
+  /**
+   * @brief Remove a lifecycle node to the lifecycle manager
+   * @return true or false (successfully removed or not)
+   */
+  bool remove_node(std::string node_name, 
     const std::chrono::nanoseconds timeout = std::chrono::nanoseconds(-1));
 
 protected:
@@ -103,9 +110,11 @@ protected:
   std::shared_ptr<nav2_util::ServiceClient<ManageLifecycleNodes>> manager_client_;
   std::shared_ptr<nav2_util::ServiceClient<std_srvs::srv::Trigger>> is_active_client_;
   std::shared_ptr<nav2_util::ServiceClient<mobile_bot_msgs::srv::AddNode>> add_node_client_;
+  std::shared_ptr<nav2_util::ServiceClient<mobile_bot_msgs::srv::RemoveNode>> remove_node_client_;
   std::string manage_service_name_;
   std::string active_service_name_;
   std::string add_node_service_name_;
+  std::string remove_node_service_name_;
 };
 
 }  // namespace lifecycle_manager

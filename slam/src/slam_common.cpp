@@ -44,14 +44,16 @@ Slam::Slam(rclcpp::NodeOptions options)
   minimum_time_interval_(std::chrono::nanoseconds(0))
 /*****************************************************************************/
 {
-  smapper_ = std::make_unique<mapper_utils::SMapper>();
-  dataset_ = std::make_unique<Dataset>();
 }
 
 nav2_util::CallbackReturn 
 Slam::on_configure(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Configuring slam...");
+
+  smapper_ = std::make_unique<mapper_utils::SMapper>();
+  dataset_ = std::make_unique<Dataset>();
+
   setParams();
   setROSInterfaces();
   setSolver();
@@ -69,15 +71,18 @@ Slam::on_configure(const rclcpp_lifecycle::State & state)
     state_, processor_type_);
   reprocessing_transform_.setIdentity();
 
-  double transform_publish_period = 0.05;
+  transform_publish_period = 0.05;
   transform_publish_period =
     this->declare_parameter("transform_publish_period",
       transform_publish_period);
+
+  continue_threads_ = true;
   threads_.push_back(std::make_unique<boost::thread>(
       boost::bind(&Slam::publishTransformLoop,
       this, transform_publish_period)));
   threads_.push_back(std::make_unique<boost::thread>(
       boost::bind(&Slam::publishVisualizations, this)));
+
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
@@ -85,6 +90,7 @@ nav2_util::CallbackReturn
 Slam::on_activate(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Activating slam...");
+
   sst_->on_activate();
   sstm_->on_activate();
   pose_pub_->on_activate();
@@ -118,9 +124,25 @@ nav2_util::CallbackReturn
 Slam::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Cleaning up slam...");
+  
+  continue_threads_ = false;
   for (int i = 0; i != threads_.size(); i++) {
-    threads_[i]->join();
+    threads_[i]->join(); // join() blocks until the threads have terminated
   }
+  threads_.clear();
+
+  scan_filter_.reset();
+  scan_filter_sub_.reset();
+  ssDesserialize_.reset();
+  ssSerialize_.reset();
+  ssPauseMeasurements_.reset();
+  ssMap_.reset();
+  sstm_.reset();
+  sst_.reset();
+  pose_pub_.reset();
+  tfB_.reset();
+  tfL_.reset();
+  tf_.reset();
 
   smapper_.reset();
   dataset_.reset();
@@ -130,6 +152,8 @@ Slam::on_cleanup(const rclcpp_lifecycle::State & state)
   laser_assistant_.reset();
   scan_holder_.reset();
   solver_.reset();
+  // every smart pointers that are resetted here are initialized in on_configure()
+  // so that memory is saved and the node can be restarted
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
@@ -233,6 +257,10 @@ void Slam::setParams()
   smapper_->configure(shared_from_this());
   this->declare_parameter("paused_new_measurements",rclcpp::ParameterType::PARAMETER_BOOL);
   this->set_parameter({"paused_new_measurements", false});
+
+  this->declare_parameter("map_file_name", std::string(""));
+  map_start_pose = this->declare_parameter("map_start_pose",rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY);
+  map_start_at_dock = this->declare_parameter("map_start_at_dock",rclcpp::ParameterType::PARAMETER_BOOL);
 }
 
 /*****************************************************************************/
@@ -296,7 +324,7 @@ void Slam::publishTransformLoop(
   }
 
   rclcpp::Rate r(1.0 / transform_publish_period);
-  while (rclcpp::ok()) {
+  while (rclcpp::ok() && continue_threads_) {
     {
       boost::mutex::scoped_lock lock(map_to_odom_mutex_);
       rclcpp::Time scan_timestamp = scan_header.stamp;
@@ -334,7 +362,7 @@ void Slam::publishVisualizations()
       map_update_interval);
   rclcpp::Rate r(1.0 / map_update_interval);
 
-  while (rclcpp::ok()) {
+  while (rclcpp::ok() && continue_threads_) {
     updateMap();
     if (!isPaused(VISUALIZING_GRAPH)) {
       boost::mutex::scoped_lock lock(smapper_mutex_);
@@ -377,9 +405,6 @@ bool Slam::shouldStartWithPoseGraph(
 /*****************************************************************************/
 {
   // if given a map to load at run time, do it.
-  this->declare_parameter("map_file_name", std::string(""));
-  auto map_start_pose = this->declare_parameter("map_start_pose",rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY);
-  auto map_start_at_dock = this->declare_parameter("map_start_at_dock",rclcpp::ParameterType::PARAMETER_BOOL);
   filename = this->get_parameter("map_file_name").as_string();
   if (!filename.empty()) {
     std::vector<double> read_pose;

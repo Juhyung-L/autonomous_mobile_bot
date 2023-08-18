@@ -1,4 +1,4 @@
-# service call to add node to the lifecycle manager
+# service call to add a node to the lifecycle manager
 
 string node_name
 ---

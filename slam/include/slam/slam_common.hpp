@@ -179,6 +179,11 @@ protected:
   double position_covariance_scale_;
   double yaw_covariance_scale_;
   bool first_measurement_, enable_interactive_mode_;
+  bool continue_threads_;
+  double transform_publish_period;
+
+  rclcpp::ParameterValue map_start_pose;
+  rclcpp::ParameterValue map_start_at_dock;
 
   // Book keeping
   std::unique_ptr<mapper_utils::SMapper> smapper_;

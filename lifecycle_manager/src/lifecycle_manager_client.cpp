@@ -29,6 +29,7 @@ LifecycleManagerClient::LifecycleManagerClient(
   manage_service_name_ = name + std::string("/manage_nodes");
   active_service_name_ = name + std::string("/is_active");
   add_node_service_name_ = name + std::string("/add_node");
+  remove_node_service_name_ = name + std::string("/remove_node");
 
   // Use parent node for service call and logging
   node_ = parent_node;
@@ -40,6 +41,8 @@ LifecycleManagerClient::LifecycleManagerClient(
     active_service_name_, node_);
   add_node_client_ = std::make_shared<nav2_util::ServiceClient<mobile_bot_msgs::srv::AddNode>>(
     add_node_service_name_, node_);
+  remove_node_client_ = std::make_shared<nav2_util::ServiceClient<mobile_bot_msgs::srv::RemoveNode>>(
+    remove_node_service_name_, node_);
 }
 
 bool
@@ -126,6 +129,36 @@ LifecycleManagerClient::add_node(std::string node_name, const std::chrono::nanos
     response = add_node_client_->invoke(request, timeout);
   } catch (std::runtime_error & e) {
     RCLCPP_ERROR(node_->get_logger(), "Add node service error: %s", e.what());
+    return false;
+  }
+  return response->success;
+}
+
+bool 
+LifecycleManagerClient::remove_node(std::string node_name, const std::chrono::nanoseconds timeout)
+{
+  auto request = std::make_shared<mobile_bot_msgs::srv::RemoveNode::Request>();
+  auto response = std::make_shared<mobile_bot_msgs::srv::RemoveNode::Response>();
+  request->node_name = node_name;
+
+  RCLCPP_DEBUG(
+    node_->get_logger(), "Waiting for the %s service...",
+    remove_node_service_name_.c_str());
+
+  if (!remove_node_client_->wait_for_service(std::chrono::seconds(1))) {
+    return false;
+  }
+
+  RCLCPP_DEBUG(
+    node_->get_logger(), "Sending %s request",
+    remove_node_service_name_.c_str());
+
+  // if sending request to service server, wrap the function with try-catch block
+  try {
+    response = remove_node_client_->invoke(request, timeout);
+  } catch (std::runtime_error & e) {
+    RCLCPP_ERROR(node_->get_logger(), "Remove node service error: %s", e.what());
+    return false;
   }
   return response->success;
 }

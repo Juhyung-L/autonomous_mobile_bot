@@ -31,6 +31,7 @@
 #include "bondcpp/bond.hpp"
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "mobile_bot_msgs/srv/add_node.hpp"
+#include "mobile_bot_msgs/srv/remove_node.hpp"
 
 
 namespace lifecycle_manager
@@ -66,6 +67,7 @@ protected:
   rclcpp::Service<ManageLifecycleNodes>::SharedPtr manager_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr is_active_srv_;
   rclcpp::Service<mobile_bot_msgs::srv::AddNode>::SharedPtr add_node_srv;
+  rclcpp::Service<mobile_bot_msgs::srv::RemoveNode>::SharedPtr remove_node_srv;
   /**
    * @brief Lifecycle node manager callback function
    * @param request_header Header of the service request
@@ -88,7 +90,7 @@ protected:
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
   /**
-   * @brief Callback to add to the list of nodes managed by the lifecycle manager
+   * @brief Callback to add a node to the lifecycle manager
    * @param request_header Header of the request
    * @param request Service request
    * @param reponse Service response
@@ -97,7 +99,17 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<mobile_bot_msgs::srv::AddNode::Request> request,
     std::shared_ptr<mobile_bot_msgs::srv::AddNode::Response> response);
-
+  /**
+   * @brief Callback to remove a node from the lifecycle manager
+   * @param request_header Header of the request
+   * @param request Service request
+   * @param reponse Service response
+   */
+  void removeNodeCallback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Request> request,
+    std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Response> response);
+  
   // Support functions for the service calls
   /**
    * @brief Start up managed nodes.

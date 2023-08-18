@@ -78,6 +78,12 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
     rmw_qos_profile_system_default,
     callback_group_);
 
+  remove_node_srv = create_service<mobile_bot_msgs::srv::RemoveNode>(
+    get_name() + std::string("/remove_node"),
+    std::bind(&LifecycleManager::removeNodeCallback, this, _1, _2, _3),
+    rmw_qos_profile_system_default,
+    callback_group_);
+
   transition_state_map_[Transition::TRANSITION_CONFIGURE] = State::PRIMARY_STATE_INACTIVE;
   transition_state_map_[Transition::TRANSITION_CLEANUP] = State::PRIMARY_STATE_UNCONFIGURED;
   transition_state_map_[Transition::TRANSITION_ACTIVATE] = State::PRIMARY_STATE_ACTIVE;
@@ -155,21 +161,60 @@ LifecycleManager::isActiveCallback(
 
 void 
 LifecycleManager::addNodeCallback(
-    const std::shared_ptr<rmw_request_id_t> /*request_header*/,
-    const std::shared_ptr<mobile_bot_msgs::srv::AddNode::Request> request,
-    std::shared_ptr<mobile_bot_msgs::srv::AddNode::Response> response)
+  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<mobile_bot_msgs::srv::AddNode::Request> request,
+  std::shared_ptr<mobile_bot_msgs::srv::AddNode::Response> response)
 {
   if (system_active_)
   {
     RCLCPP_ERROR(get_logger(), 
       "Could not add node %s to lifecycle manager because other nodes are active\n"
-      "You must shutdown the other nodes before adding this node", request->node_name.c_str());
+      "You must deactivate the other nodes before adding this node", request->node_name.c_str());
     response->success = false;
     return;
   }
 
   node_names_.push_back(request->node_name);
   response->success = true;
+}
+
+void
+LifecycleManager::removeNodeCallback(
+  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Request> request,
+  std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Response> response)
+{
+  if (system_active_)
+  {
+    RCLCPP_ERROR(get_logger(), 
+      "Could not remove node %s from lifecycle manager because other nodes are active\n"
+      "You must deactivate the other nodes before removing this node", request->node_name.c_str());
+    response->success = false;
+    return;
+  }
+
+  // shutdown the node to be removed
+  try
+  {
+    changeStateForNode(request->node_name, Transition::TRANSITION_CLEANUP);
+    changeStateForNode(request->node_name, Transition::TRANSITION_UNCONFIGURED_SHUTDOWN);
+  }
+  catch (const std::runtime_error& e)
+  {
+    RCLCPP_ERROR(get_logger(),
+      "Failed to change state for node: %s. Exception: %s.", request->node_name.c_str(), e.what());
+    response->success = false;
+    return;
+  }
+
+  // remove the node from node_names_ (std::vector) and node_map_ (std::map)
+  node_names_.erase(
+    std::remove(node_names_.begin(), node_names_.end(), request->node_name), node_names_.end());
+  node_map_[request->node_name].reset(); // destory the LifecycleServiceClient object
+  node_map_.erase(request->node_name);
+
+  response->success = true;
+  return;
 }
 
 void
