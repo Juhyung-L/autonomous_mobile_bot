@@ -44,6 +44,7 @@ Slam::Slam(rclcpp::NodeOptions options)
   minimum_time_interval_(std::chrono::nanoseconds(0))
 /*****************************************************************************/
 {
+  setParams();
 }
 
 nav2_util::CallbackReturn 
@@ -53,8 +54,8 @@ Slam::on_configure(const rclcpp_lifecycle::State & state)
 
   smapper_ = std::make_unique<mapper_utils::SMapper>();
   dataset_ = std::make_unique<Dataset>();
-
-  setParams();
+  smapper_->configure(shared_from_this());
+  
   setROSInterfaces();
   setSolver();
 
@@ -70,11 +71,6 @@ Slam::on_configure(const rclcpp_lifecycle::State & state)
     shared_from_this(), smapper_->getMapper(), scan_holder_.get(),
     state_, processor_type_);
   reprocessing_transform_.setIdentity();
-
-  transform_publish_period = 0.05;
-  transform_publish_period =
-    this->declare_parameter("transform_publish_period",
-      transform_publish_period);
 
   continue_threads_ = true;
   threads_.push_back(std::make_unique<boost::thread>(
@@ -176,9 +172,6 @@ void Slam::setSolver()
 /*****************************************************************************/
 {
   // Set solver to be used in loop closure
-  std::string solver_plugin = std::string("solver_plugins::CeresSolver");
-  solver_plugin = this->declare_parameter("solver_plugin", solver_plugin);
-
   try {
     solver_ = solver_loader_.createSharedInstance(solver_plugin);
     RCLCPP_INFO(get_logger(), "Using solver plugin %s",
@@ -254,23 +247,32 @@ void Slam::setParams()
         RCUTILS_LOG_SEVERITY_DEBUG);
   }
 
-  smapper_->configure(shared_from_this());
   this->declare_parameter("paused_new_measurements",rclcpp::ParameterType::PARAMETER_BOOL);
   this->set_parameter({"paused_new_measurements", false});
 
   this->declare_parameter("map_file_name", std::string(""));
   map_start_pose = this->declare_parameter("map_start_pose",rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY);
   map_start_at_dock = this->declare_parameter("map_start_at_dock",rclcpp::ParameterType::PARAMETER_BOOL);
+
+  tf_buffer_duration = 30.;
+  tf_buffer_duration = this->declare_parameter("tf_buffer_duration", tf_buffer_duration);
+
+  map_update_interval = 10;
+  map_update_interval = this->declare_parameter("map_update_interval", map_update_interval);
+
+  solver_plugin = std::string("solver_plugins::CeresSolver");
+  solver_plugin = this->declare_parameter("solver_plugin", solver_plugin);
+
+  transform_publish_period = 0.05;
+  transform_publish_period = this->declare_parameter("transform_publish_period", transform_publish_period);
 }
 
 /*****************************************************************************/
 void Slam::setROSInterfaces()
 /*****************************************************************************/
 {
-  double tmp_val = 30.;
-  tmp_val = this->declare_parameter("tf_buffer_duration", tmp_val);
   tf_ = std::make_unique<tf2_ros::Buffer>(this->get_clock(),
-      tf2::durationFromSec(tmp_val));
+      tf2::durationFromSec(tf_buffer_duration));
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     get_node_base_interface(),
     get_node_timers_interface());
@@ -357,9 +359,6 @@ void Slam::publishVisualizations()
   og.info.origin.orientation.w = 1.0;
   og.header.frame_id = map_frame_;
 
-  double map_update_interval = 10;
-  map_update_interval = this->declare_parameter("map_update_interval",
-      map_update_interval);
   rclcpp::Rate r(1.0 / map_update_interval);
 
   while (rclcpp::ok() && continue_threads_) {

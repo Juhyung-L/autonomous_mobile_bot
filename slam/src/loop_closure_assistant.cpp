@@ -35,9 +35,16 @@ LoopClosureAssistant::LoopClosureAssistant(
   processor_type_(processor_type)
 /*****************************************************************************/
 {
-  node_->declare_parameter("paused_processing", false);
+  if (!node_->has_parameter("paused_processing"))
+  {
+    node_->declare_parameter("paused_processing", false);
+  }
   node_->set_parameter(rclcpp::Parameter("paused_processing", false));
-  node_->declare_parameter("interactive_mode", false);
+
+  if (!node_->has_parameter("interactive_mode"))
+  {
+    node_->declare_parameter("interactive_mode", false);
+  }
   node_->set_parameter(rclcpp::Parameter("interactive_mode", false));
   node_->get_parameter("enable_interactive_mode", enable_interactive_mode_);
 

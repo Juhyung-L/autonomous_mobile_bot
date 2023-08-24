@@ -3,149 +3,21 @@
 #include "nav2_map_server/map_mode.hpp"
 #include "nav2_map_server/map_saver.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
+#include "std_srvs/srv/empty.hpp"
 
-// #include "mobile_bot_msgs/action/autonomous_slam.hpp"
 #include "lifecycle_manager/lifecycle_manager_client.hpp"
+#include "mobile_bot_msgs/action/explore_frontier.hpp"
 
 #include <filesystem>
 
 using namespace nav2_map_server;
 using namespace std::placeholders;
-// using AutoSlam = mobile_bot_msgs::action::AutonomousSlam;
-// using GoalHandleAutoSlam = rclcpp_action::ClientGoalHandle<AutoSlam>;
 
 
 // potential parameters
 // - free_thresh
 // - occupied_thresh
 // - map_mode_from_string
-
-// action client callbacks
-// goal response callback
-// feedback callback
-// result callback
-// class MasterNode : public rclcpp::Node
-// {
-
-// public:
-//     MasterNode()
-//     : Node("master_node")
-//     , logger(this->get_logger())
-//     {
-        
-        
-//         client = rclcpp_action::create_client<AutoSlam>(
-//             this,
-//             "autonomous_slam");
-        
-//         saveMap();
-//     }
-
-// private:
-//     rclcpp::Logger logger;
-//     MapSaver::SharedPtr map_saver;
-//     rclcpp_action::Client<AutoSlam>::SharedPtr client;
-
-//     void saveMap()
-//     {
-        
-//         // set save parameters and map topic
-//         SaveParameters save_parameters;
-//         std::string map_topic = "global_costmap/costmap";
-//         save_parameters.map_file_name = map_file_path;
-//         save_parameters.image_format = image_format;
-//         save_parameters.free_thresh = 0.25;
-//         save_parameters.occupied_thresh = 0.65;
-//         save_parameters.mode = map_mode_from_string("trinary");
-
-//         try 
-//         {
-//             if (map_saver->saveMapTopicToFile(map_topic, save_parameters)) 
-//             {
-//                 RCLCPP_INFO(logger, "Successfully saved map");
-//             } 
-//             else 
-//             {
-//                 RCLCPP_INFO(logger, "Failed to save map");
-//             }
-//         } 
-//         catch (std::exception & e) 
-//         {
-//             RCLCPP_ERROR(logger, "Unexpected problem appear: %s", e.what());
-//             return;
-//         }
-//     }
-
-//     void callAutoSlam()
-//     {
-//         RCLCPP_INFO(logger, "Waiting AutoSlam action server");
-//         client->wait_for_action_server();
-
-//         auto goal_msg = AutoSlam::Goal();
-//         goal_msg.start_map = true;
-
-//         RCLCPP_INFO(this->get_logger(), "Sending goal");
-
-//         // set all the callbacks that can occur after sending a request
-//         // goal_response_callback = the response of the server acknowledging the request (comes right after the request is sent)
-//         // feedback_callback = the constant feedback message sent by the server
-//         // result_callback = the final result of the request
-//         auto send_goal_options = rclcpp_action::Client<AutoSlam>::SendGoalOptions();
-//         send_goal_options.goal_response_callback =
-//         std::bind(&MasterNode::goal_response_callback, this, _1);
-//         send_goal_options.feedback_callback =
-//         std::bind(&MasterNode::feedback_callback, this, _1, _2);
-//         send_goal_options.result_callback =
-//         std::bind(&MasterNode::result_callback, this, _1);
-
-//         // send the request
-//         client->async_send_goal(goal_msg, send_goal_options);
-//     }
-
-//     void goal_response_callback(const GoalHandleAutoSlam::SharedPtr & goal_handle)
-//     {
-//         if (!goal_handle) {
-//         RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
-//         } else {
-//         RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
-//         }
-//     }
-
-//     void feedback_callback(
-//         GoalHandleAutoSlam::SharedPtr,
-//         const std::shared_ptr<const AutoSlam::Feedback> feedback)
-//     {
-//         (void)feedback;
-//     }
-
-//     void result_callback(const GoalHandleAutoSlam::WrappedResult & result)
-//     {
-//         // check if how the action went
-//         switch (result.code) {
-//         case rclcpp_action::ResultCode::SUCCEEDED:
-//             break;
-//         case rclcpp_action::ResultCode::ABORTED:
-//             RCLCPP_ERROR(this->get_logger(), "Goal was aborted");
-//             return;
-//         case rclcpp_action::ResultCode::CANCELED:
-//             RCLCPP_ERROR(this->get_logger(), "Goal was canceled");
-//             return;
-//         default:
-//             RCLCPP_ERROR(this->get_logger(), "Unknown result code");
-//             return;
-//         }
-
-//         if (result.result->all_frontiers_cleared)
-//         {
-//             RCLCPP_INFO(logger, "All frontiers cleared");
-//         }
-//         else
-//         {
-//             RCLCPP_INFO(logger, "Not all frontiers cleared\n Restarting the mapping process");
-//         }
-
-//     }
-// };
 
 std::vector<const char*> helper_msgs{
     "Map file detected on machine.\n Press {L} to load the saved map file or {R} to generate a new map file.",
@@ -223,6 +95,11 @@ int main(int argc, char** argv)
     auto lifecycle_client =
         std::make_shared<lifecycle_manager::LifecycleManagerClient>(
             "lifecycle_manager_navigation", node);
+    auto frontier_explorer_client = node->create_client<std_srvs::srv::Empty>("explore_frontier_send_goal");
+
+    // auto action_client = rclcpp_action::create_client<ExploreFrontier>(
+    //     this, ""
+    // )
 
     // testing
     while (rclcpp::ok())
@@ -230,7 +107,7 @@ int main(int argc, char** argv)
         RCLCPP_INFO(logger, "\n"
                             "Press q/w/e to startup, shutdown, reset everything\n"
                             "Press a/s to resume or pause everything\n"
-                            "Press z/x to add or remove Slam node\n"
+                            "Press f to send goal to frontier explorer action server\n"
                             "Press d to quit");
         char d = getchar();
         
@@ -254,13 +131,19 @@ int main(int argc, char** argv)
         {
             lifecycle_client->pause();
         }
-        else if (d == 'z')
+        else if (d == 'f')
         {
-            lifecycle_client->add_node("async_slam");
-        }
-        else if (d == 'x')
-        {
-            lifecycle_client->remove_node("async_slam");
+            frontier_explorer_client->wait_for_service();
+            auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+            auto result = frontier_explorer_client->async_send_request(request);
+            if (rclcpp::spin_until_future_complete(node, result) == rclcpp::FutureReturnCode::SUCCESS)
+            {
+                RCLCPP_INFO(logger, "Successfully sent request to frontier_explorer server");
+            }
+            else
+            {
+                RCLCPP_ERROR(logger, "Failed to send request to frontier_explorer server");
+            }
         }
         else if (d == 'd')
         {

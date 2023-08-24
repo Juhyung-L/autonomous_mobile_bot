@@ -3,3 +3,11 @@
 Possible improvements
 1. compile everything into rclcpp components in addition to executables
 2. 
+
+
+implement error state for
+- frontier_explorer
+- slam
+
+Respawning a node?
+wth is heartbeat for lifecycle node

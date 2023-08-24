@@ -15,6 +15,10 @@ find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(mobile_bot_msgs REQUIRED)
+find_package(nav2_util)
+find_package(rclcpp_lifecycle)
+find_package(lifecycle_msgs)
+find_package(std_srvs)
 
 include_directories(include)
 
@@ -27,22 +31,43 @@ set(dependencies
   tf2
   tf2_ros
   mobile_bot_msgs
+  nav2_util
+  rclcpp_lifecycle
+  lifecycle_msgs
 )
 
-add_executable(frontier_explorer 
-  src/main.cpp 
-  src/frontier_explorer.cpp 
+include_directories(include)
+
+# building client
+add_executable(frontier_explorer_client
+  src/frontier_explorer_client_node.cpp
+  src/frontier_explorer_client.cpp
+)
+target_include_directories(frontier_explorer_client PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(frontier_explorer_client
+  PRIVATE "MOBILE_BOT_MSGS_CPP_BUILDING_DLL")
+ament_target_dependencies(frontier_explorer_client
+  rclcpp
+  rclcpp_action
+  mobile_bot_msgs
+  std_srvs
+)
+
+# building server
+add_executable(frontier_explorer_server
+  src/frontier_explorer_server_node.cpp 
+  src/frontier_explorer_server.cpp 
   src/frontier_search.cpp
 )
-ament_target_dependencies(frontier_explorer ${dependencies})
+target_include_directories(frontier_explorer_server PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_definitions(frontier_explorer_server
+  PRIVATE "MOBILE_BOT_MSGS_CPP_BUILDING_DLL")
+ament_target_dependencies(frontier_explorer_server ${dependencies})
 
-# # compiling action server
-# add_executable(run_autoslam_action_server src/frontier_explorer_node.cpp src/frontier_search.cpp)
-# target_include_directories(run_autoslam_action_server PRIVATE
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include>)
-# target_compile_definitions(run_autoslam_action_server PRIVATE "CPP_ACTION_TUTORIALS_BUILDING_DLL")
-# ament_target_dependencies(run_autoslam_action_server ${dependencies})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -56,9 +81,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+install(DIRECTORY include/ DESTINATION include/)
+
 install(TARGETS 
-  frontier_explorer
-  # run_autoslam_action_server
+  frontier_explorer_client
+  frontier_explorer_server
   DESTINATION lib/${PROJECT_NAME}
 )
 

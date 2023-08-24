@@ -1,9 +1,8 @@
 # goal definition
-bool start_map
 ---
 # result definition
 # the mapping process can sometime terminate with some frontiers uncleared
-# in which case the map is incomplete and the mapping process needs to be restarted
 bool all_frontiers_cleared
 ---
-# no feedback is necessary
+# size of the costmap in cells
+uint32 map_size

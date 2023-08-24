@@ -23,11 +23,14 @@ from launch_ros.actions import SetParameter
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
     # Get the launch directory
-    bringup_dir = get_package_share_directory('nav2_bringup')
+    pkg_share = get_package_share_directory('nav2_bringup')
+    slam_dir = get_package_share_directory('slam')
 
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
@@ -42,7 +45,9 @@ def generate_launch_description():
                        'behavior_server',
                        'bt_navigator',
                        'waypoint_follower',
-                       'velocity_smoother']
+                       'velocity_smoother',
+                       'async_slam',
+                       'frontier_explorer_server']
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -81,7 +86,7 @@ def generate_launch_description():
     )
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
-        default_value=os.path.join(bringup_dir, 'params', 'nav2_params.yaml'),
+        default_value=os.path.join(pkg_share, 'config', 'nav2_params.yaml'),
         description='Full path to the ROS2 parameters file to use for all launched nodes'
     )
     declare_autostart_cmd = DeclareLaunchArgument(
@@ -177,7 +182,14 @@ def generate_launch_description():
                 remappings=remappings +
                         [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]
             ),
-            # change this node from nav2_lifecycle_manager to lifecycle_manager
+            Node(
+                package='frontier_explorer',
+                executable='frontier_explorer_server',
+                name='frontier_explorer_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level]
+            ),
+            # changed this node from nav2_lifecycle_manager to lifecycle_manager
             # (my version of lifecycle manager)
             Node(
                 package='lifecycle_manager',
@@ -188,7 +200,24 @@ def generate_launch_description():
                 parameters=[{'autostart': autostart},
                             {'node_names': lifecycle_nodes}]
             ),
+            # non-lifecycle nodes from here
+            Node(
+                package='frontier_explorer',
+                executable='frontier_explorer_client',
+                name='frontier_explorer_client',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level]
+            ),
         ]
+    )
+
+    # launch slam
+    slam_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')
+        ),
+        launch_arguments={
+            'use_sim_time': use_sim_time
+        }.items()
     )
 
     # Create the launch description and populate
@@ -206,5 +235,6 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)
+    ld.add_action(slam_launch)
 
     return ld

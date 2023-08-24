@@ -6,10 +6,12 @@
 #include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "nav2_msgs/msg/costmap.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
+#include "nav2_util/lifecycle_node.hpp"
 
 namespace frontier_explorer
 {
@@ -31,56 +33,57 @@ struct Frontiers
 class FrontierSearch
 {
 public:
-    FrontierSearch(rclcpp::Node& node);
-    std::vector<Frontiers> searchFrontiers(const geometry_msgs::msg::Pose& startPose);
+    FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& node);
+    std::vector<Frontiers> searchFrontiers(const geometry_msgs::msg::Pose& start_pose);
     void updateMap(const nav2_msgs::msg::Costmap::SharedPtr& costmap);
     bool goalOnBlacklist(const geometry_msgs::msg::Point& goal);
     void visualizeFrontiers(const std::vector<Frontiers>& frontiers);
     void addToBlacklist(const geometry_msgs::msg::Point& frontiers);
+
+    rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub; 
 private:
-    unsigned char* mapData;
-    unsigned int sizeX, sizeY;
+    unsigned char* map_data;
+    unsigned int size_x, size_y;
     float resolution;
-    geometry_msgs::msg::Pose mapOrigin;
-    std::string frameId;
-    rclcpp::Node& node;
+    geometry_msgs::msg::Pose map_origin;
+    std::string frame_id;
+    std::shared_ptr<nav2_util::LifecycleNode> node;
 
-    double distanceWeight;
-    double sizeWeight;
+    double distance_weight;
+    double size_weight;
 
-    std::vector<geometry_msgs::msg::Point> frontiersBlacklist;
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr markerPub;
-    size_t prevMarkerCount;
+    std::vector<geometry_msgs::msg::Point> frontiers_black_list;
+    size_t prev_marker_count;
 
     bool isNewFrontier(unsigned int idx);
-    Frontiers buildNewFrontiers(unsigned int startIdx, std::vector<bool>& visited,
-                                                const geometry_msgs::msg::Pose& robotPose);
+    Frontiers buildNewFrontiers(unsigned int start_idx, std::vector<bool>& visited,
+                                                const geometry_msgs::msg::Pose& robot_pose);
     double frontierCost(const Frontiers& frontier);
     
-    unsigned int cellsToIndex(unsigned int mapX, unsigned int mapY)
+    unsigned int cellsToIndex(unsigned int map_x, unsigned int map_y)
     {
-        return mapY * sizeX + mapX;
+        return map_y * size_x + map_x;
     }
 
     void indexToCells(unsigned int index, unsigned int& mx, unsigned int& my) const
     {
-        my = index / sizeX;
-        mx = index - (my * sizeX);
+        my = index / size_x;
+        mx = index - (my * size_x);
     }
 
     bool worldToMap(double wx, double wy, unsigned int & mx, unsigned int & my) const
     {
         // coordinate is outside the map
-        if (wx < mapOrigin.position.x || wy < mapOrigin.position.y)
+        if (wx < map_origin.position.x || wy < map_origin.position.y)
         {
             return false;
         }
         // convert from world coordinate to map index
-        mx = static_cast<unsigned int>((wx - mapOrigin.position.x ) / resolution);
-        my = static_cast<unsigned int>((wy - mapOrigin.position.y) / resolution);
+        mx = static_cast<unsigned int>((wx - map_origin.position.x ) / resolution);
+        my = static_cast<unsigned int>((wy - map_origin.position.y) / resolution);
 
         // check if map indices are inside the map
-        if (mx < sizeX && my < sizeY)
+        if (mx < size_x && my < size_y)
         {
             return true;
         }
@@ -89,8 +92,8 @@ private:
 
     void mapToWorld(unsigned int mx, unsigned int my, double& wx, double& wy) const
     {
-        wx = mapOrigin.position.x + (mx + 0.5) * resolution;
-        wy = mapOrigin.position.y + (my + 0.5) * resolution;
+        wx = map_origin.position.x + (mx + 0.5) * resolution;
+        wy = map_origin.position.y + (my + 0.5) * resolution;
     }
 
     std::vector<unsigned int> nhood4(unsigned int idx)
@@ -98,33 +101,33 @@ private:
         // get 4-connected neighbourhood indexes, check for edge of map
         std::vector<unsigned int> out;
 
-        if (idx > sizeX * sizeY - 1) {
+        if (idx > size_x * size_y - 1) {
             RCLCPP_WARN(rclcpp::get_logger("autonomous_explorer_node"), "Evaluating nhood for offmap point");
             return out;
         }
 
         // index is not at the left edge of the map
-        // if idx % sizeX == 0 then the idx is at the left edge of the map
-        if (idx % sizeX > 0) {
+        // if idx % size_x == 0 then the idx is at the left edge of the map
+        if (idx % size_x > 0) {
             out.push_back(idx - 1); // add cell to the left
         }
         // index is not at the right edge of the map
-        // if idx % sizeX == size_x - 1 then the idx is at the right edge of the map
-        // cuz if sizeX = 10 and idx = 29 (right edge of third column since index starts from 0) then
-        // 29 % 10 = 9 == sizeX - 1
-        if (idx % sizeX < sizeX - 1) {
+        // if idx % size_x == size_x - 1 then the idx is at the right edge of the map
+        // cuz if size_x = 10 and idx = 29 (right edge of third column since index starts from 0) then
+        // 29 % 10 = 9 == size_x - 1
+        if (idx % size_x < size_x - 1) {
             out.push_back(idx + 1); // add cell to the right
         }
         // idx is not in the first row (no cells above)
-        // if idx = 5 and sizeX = 10 then that idx is the 6th cell, which is in the first row (no cell above)
-        if (idx >= sizeX) {
-            out.push_back(idx - sizeX); // add upper cell
+        // if idx = 5 and size_x = 10 then that idx is the 6th cell, which is in the first row (no cell above)
+        if (idx >= size_x) {
+            out.push_back(idx - size_x); // add upper cell
         }
         // idx is not in the last row (no cells below)
         // size_x * (size_y - 1) = idx of the right most cell in the second last row
         // if idx exceeds this number, it is in the last row (no cells below it)
-        if (idx < sizeX * (sizeY - 1)) {
-            out.push_back(idx + sizeX); // add lower cell
+        if (idx < size_x * (size_y - 1)) {
+            out.push_back(idx + size_x); // add lower cell
         }
         //
         //     X
@@ -142,21 +145,21 @@ private:
         // get 8-connected neighbourhood indexes, check for edge of map
         std::vector<unsigned int> out = nhood4(idx);
 
-        if (idx > sizeX * sizeY - 1) {
+        if (idx > size_x * size_y - 1) {
             return out;
         }
 
-        if (idx % sizeX > 0 && idx >= sizeX) {
-            out.push_back(idx - 1 - sizeX); // add upper left cell
+        if (idx % size_x > 0 && idx >= size_x) {
+            out.push_back(idx - 1 - size_x); // add upper left cell
         }
-        if (idx % sizeX > 0 && idx < sizeX * (sizeY - 1)) {
-            out.push_back(idx - 1 + sizeX); // add lower left cell
+        if (idx % size_x > 0 && idx < size_x * (size_y - 1)) {
+            out.push_back(idx - 1 + size_x); // add lower left cell
         }
-        if (idx % sizeX < sizeX - 1 && idx >= sizeX) {
-            out.push_back(idx + 1 - sizeX); // add upper right cell
+        if (idx % size_x < size_x - 1 && idx >= size_x) {
+            out.push_back(idx + 1 - size_x); // add upper right cell
         }
-        if (idx % sizeX < sizeX - 1 && idx < sizeX * (sizeY - 1)) {
-            out.push_back(idx + 1 + sizeX); // add lower right cell
+        if (idx % size_x < size_x - 1 && idx < size_x * (size_y - 1)) {
+            out.push_back(idx + 1 + size_x); // add lower right cell
         }
         //
         //   X   X

@@ -181,6 +181,9 @@ protected:
   bool first_measurement_, enable_interactive_mode_;
   bool continue_threads_;
   double transform_publish_period;
+  double tf_buffer_duration;
+  double map_update_interval;
+  std::string solver_plugin;
 
   rclcpp::ParameterValue map_start_pose;
   rclcpp::ParameterValue map_start_at_dock;

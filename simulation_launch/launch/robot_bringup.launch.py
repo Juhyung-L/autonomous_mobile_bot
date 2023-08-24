@@ -17,8 +17,6 @@ def generate_launch_description():
 
     pkg_nav2 = get_package_share_directory('nav2_bringup')
     nav2_params_path = os.path.join(pkg_nav2, 'params', 'nav2_params.yaml')
-    
-    pkg_slam = get_package_share_directory('slam')
 
     # launch configuration variables
     rviz_config_file = LaunchConfiguration('rviz_config_file')
@@ -78,12 +76,6 @@ def generate_launch_description():
                           'params_file': params_file,
                           'autostart': autostart}.items()
     )
-    # # launch slam toolbox
-    # start_slam =  IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         os.path.join(pkg_slam, 'launch', 'online_async_launch.py')),
-    #     launch_arguments={'use_sim_time' : use_sim_time}.items()
-    # )
 
     # launch other launch files
     robot_world_launch = IncludeLaunchDescription(
@@ -100,9 +92,8 @@ def generate_launch_description():
 
         robot_world_launch,
         robot_localization_node,
-        # rviz_node,
+        rviz_node,
         keyboard_teleop_node,
 
         start_nav2
-        #start_slam
     ])

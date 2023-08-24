@@ -13,48 +13,53 @@ static double distanceFormula(double x1, double y1, double x2, double y2)
     return sqrt(pow(x2-x1,2) + pow(y2-y1,2));
 }
 
-FrontierSearch::FrontierSearch(rclcpp::Node& node) : node(node)
+FrontierSearch::FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& node) : node(node)
 {
     // publisher to publish frontiers (both points and centroids) for debug
-    markerPub = node.create_publisher<visualization_msgs::msg::MarkerArray>("froniter_markers", 10);
+    marker_pub = node->create_publisher<visualization_msgs::msg::MarkerArray>("froniter_markers", 10);
     // importance of the distance to the closest frontier point when calculating the Frontiers' cost
-    node.declare_parameter<double>("distance_weight", 1.0);
+    if (!node->has_parameter("distance_weight"))
+    {
+        node->declare_parameter<double>("distance_weight", 1.0);
+    }
     // importance of the number of frontier points when calculating the Frontiers' cost
-    node.declare_parameter<double>("size_weight", 1.0);
-
-    node.get_parameter("distance_weight", distanceWeight);
-    node.get_parameter("size_weight", sizeWeight);
+    if (!node->has_parameter("size_weight"))
+    {
+        node->declare_parameter<double>("size_weight", 0.1);
+    }
+    node->get_parameter("distance_weight", distance_weight);
+    node->get_parameter("size_weight", size_weight);
 }
 
-std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg::Pose& startPose)
+std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg::Pose& start_pose)
 {
     // turn the pose into int
     // input it into getIndex to get the index 
-    std::vector<Frontiers> frontiersList;
+    std::vector<Frontiers> frontiers_list;
 
     unsigned int mx, my;
-    if (!worldToMap(startPose.position.x, startPose.position.y, mx, my))
+    if (!worldToMap(start_pose.position.x, start_pose.position.y, mx, my))
     {
-        RCLCPP_WARN(node.get_logger(), "Robot is outside of map");
-        return frontiersList;
+        RCLCPP_WARN(node->get_logger(), "Robot is outside of map");
+        return frontiers_list;
     }
-    unsigned int startIndex = cellsToIndex(mx, my);
+    unsigned int start_index = cellsToIndex(mx, my);
 
-    std::vector<bool> visited(sizeX * sizeY, false);
+    std::vector<bool> visited(size_x * size_y, false);
     std::queue<unsigned int> bfs;
 
     // proceed if the cell under the robot has known occupancy
     // and the occupancy is less than MAX_NON_OBSTACLE
-    if (mapData[startIndex] <= MAX_NON_OBSTACLE)
+    if (map_data[start_index] <= MAX_NON_OBSTACLE)
     {
-        bfs.push(startIndex);
-        visited[startIndex] = true;
+        bfs.push(start_index);
+        visited[start_index] = true;
     }
     else
     {
         // TODO: make the robot move forward until a cell 
         // with less than or equal to MAX_NON_OBSTACLE cell value
-        return frontiersList; // return empty frontier list
+        return frontiers_list; // return empty frontier list
     }
 
     // use bfs to traverse through cells less than MAX_NON_OBSTACLE to find a frontier point
@@ -69,11 +74,11 @@ std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg:
 
         for (unsigned int& nbr : nhood4(idx))
         {
-            if (!visited[nbr] && mapData[nbr] <= MAX_NON_OBSTACLE)
+            if (!visited[nbr] && map_data[nbr] <= MAX_NON_OBSTACLE)
             {
                 if (isNewFrontier(nbr))
                 {
-                    frontiersList.push_back(buildNewFrontiers(nbr, visited, startPose));
+                    frontiers_list.push_back(buildNewFrontiers(nbr, visited, start_pose));
                 }
                 bfs.push(nbr);
             }
@@ -82,18 +87,18 @@ std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg:
     }
     
     // calculate the cost for each
-    for (auto& f : frontiersList)
+    for (auto& f : frontiers_list)
     {
         f.cost = frontierCost(f);
     }
 
-    return frontiersList;
+    return frontiers_list;
 }
 
 double FrontierSearch::frontierCost(const Frontiers& frontier)
 {
-    return (distanceWeight * frontier.min_distance * resolution) -
-           (sizeWeight * frontier.points.size() * resolution);
+    return (distance_weight * frontier.min_distance * resolution) -
+           (size_weight * frontier.points.size() * resolution);
 }
 
 bool FrontierSearch::isNewFrontier(unsigned int idx)
@@ -101,7 +106,7 @@ bool FrontierSearch::isNewFrontier(unsigned int idx)
     // if any of its neighboring cells is unknown, it is a frontier cell
     for (unsigned int& nbr : nhood8(idx))
     {
-        if (mapData[nbr] == NO_INFORMATION)
+        if (map_data[nbr] == NO_INFORMATION)
         {
             return true;
         }
@@ -109,8 +114,8 @@ bool FrontierSearch::isNewFrontier(unsigned int idx)
     return false;
 }
 
-Frontiers FrontierSearch::buildNewFrontiers(unsigned int startIdx, std::vector<bool>& visited,
-                                            const geometry_msgs::msg::Pose& robotPose)
+Frontiers FrontierSearch::buildNewFrontiers(unsigned int start_idx, std::vector<bool>& visited,
+                                            const geometry_msgs::msg::Pose& robot_pose)
 {
     // get all connected frontiers and return the Frontiers struct
     // by traversing through cells less than MAX_NON_OBSTACLE
@@ -118,8 +123,8 @@ Frontiers FrontierSearch::buildNewFrontiers(unsigned int startIdx, std::vector<b
     frontiers.min_distance = std::numeric_limits<double>::infinity();
 
     std::queue<unsigned int> bfs;
-    bfs.push(startIdx);
-    visited[startIdx] = true;
+    bfs.push(start_idx);
+    visited[start_idx] = true;
 
     while (!bfs.empty())
     {
@@ -141,7 +146,7 @@ Frontiers FrontierSearch::buildNewFrontiers(unsigned int startIdx, std::vector<b
         frontiers.centriod.y += wy;
 
         // getting minimum distance from robot pose
-        double distance = distanceFormula(robotPose.position.x, robotPose.position.y, wx, wy);
+        double distance = distanceFormula(robot_pose.position.x, robot_pose.position.y, wx, wy);
         if (frontiers.min_distance > distance)
         {
             frontiers.min_distance = distance;
@@ -149,7 +154,7 @@ Frontiers FrontierSearch::buildNewFrontiers(unsigned int startIdx, std::vector<b
 
         for (unsigned int& nbr : nhood8(idx))
         {
-            if (!visited[nbr] && isNewFrontier(nbr) && mapData[nbr] <= MAX_NON_OBSTACLE)
+            if (!visited[nbr] && isNewFrontier(nbr) && map_data[nbr] <= MAX_NON_OBSTACLE)
             {
                 bfs.push(nbr);
             }
@@ -167,7 +172,7 @@ bool FrontierSearch::goalOnBlacklist(const geometry_msgs::msg::Point& goal)
         constexpr static size_t tolerace = 5;
 
         // check if a goal is on the blacklist for goals that we're pursuing
-        for (auto& f : frontiersBlacklist) {
+        for (auto& f : frontiers_black_list) {
             double dx = fabs(goal.x - f.x);
             double dy = fabs(goal.y - f.y);
             // go thru every point in frontier_blacklist
@@ -184,51 +189,51 @@ bool FrontierSearch::goalOnBlacklist(const geometry_msgs::msg::Point& goal)
 
 void FrontierSearch::updateMap(const nav2_msgs::msg::Costmap::SharedPtr& costmap)
 {
-    mapData = costmap->data.data(); // get a pointer to the first element in the vector
-    sizeX = costmap->metadata.size_x;
-    sizeY = costmap->metadata.size_y;
+    map_data = costmap->data.data(); // get a pointer to the first element in the vector
+    size_x = costmap->metadata.size_x;
+    size_y = costmap->metadata.size_y;
     resolution = costmap->metadata.resolution;
-    frameId = costmap->header.frame_id;
-    mapOrigin = costmap->metadata.origin;
+    frame_id = costmap->header.frame_id;
+    map_origin = costmap->metadata.origin;
 }
 
 void FrontierSearch::addToBlacklist(const geometry_msgs::msg::Point& centroid)
 {
-    frontiersBlacklist.push_back(centroid);
-    RCLCPP_INFO(node.get_logger(), "Blacklist size: %ld", frontiersBlacklist.size());
+    frontiers_black_list.push_back(centroid);
+    RCLCPP_INFO(node->get_logger(), "Blacklist size: %ld", frontiers_black_list.size());
 }
 
 // input will always be vector<Frontiers> that is sorted based on Frontiers.cost
-void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiersList)
+void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiers_list)
 {
-    auto lowestCost = 
-    std::find_if_not(frontiersList.begin(), frontiersList.end(),
+    auto lowest_cost = 
+    std::find_if_not(frontiers_list.begin(), frontiers_list.end(),
                      [this](const Frontiers& f) {return goalOnBlacklist(f.centriod);
                      });
     
-    auto highestCost = 
-    std::find_if_not(frontiersList.end(), frontiersList.begin(),
+    auto highest_cost = 
+    std::find_if_not(frontiers_list.end(), frontiers_list.begin(),
                      [this](const Frontiers& f) {return goalOnBlacklist(f.centriod);
                      });
 
-    if (lowestCost == frontiersList.end())
+    if (lowest_cost == frontiers_list.end())
     {
-        return; // either frontiersList is empty or all of its frontiers are in the blacklist
+        return; // either frontiers_list is empty or all of its frontiers are in the blacklist
     }
 
-    double range = highestCost->cost - lowestCost->cost;
+    double range = highest_cost->cost - lowest_cost->cost;
     if (range == 0.0)
     {
         range = 0.0001; // prevent division by 0
     }
 
-    visualization_msgs::msg::MarkerArray markersMsg;
-    std::vector<visualization_msgs::msg::Marker>& markers = markersMsg.markers;
+    visualization_msgs::msg::MarkerArray markers_msg;
+    std::vector<visualization_msgs::msg::Marker>& markers = markers_msg.markers;
     visualization_msgs::msg::Marker m;
 
     // m is the marker message to send
-    m.header.frame_id = frameId;
-    m.header.stamp = node.now();
+    m.header.frame_id = frame_id;
+    m.header.stamp = node->now();
     m.ns = "frontiers";
     m.color.a = 1.0;
 
@@ -244,8 +249,8 @@ void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiersL
 
     m.action = visualization_msgs::msg::Marker::ADD;
     size_t id = 0; // intialize id to 0
-    RCLCPP_INFO(node.get_logger(), "Visualizing %ld frontiers", frontiersList.size());
-    for (auto& frontiers : frontiersList) 
+    RCLCPP_INFO(node->get_logger(), "Visualizing %ld frontiers", frontiers_list.size());
+    for (auto& frontiers : frontiers_list) 
     {
         // set the color of the marker
         if (goalOnBlacklist(frontiers.centriod)) 
@@ -260,8 +265,8 @@ void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiersL
             // close frontiers = greener
             // faraway frontiers = bluer
             m.color.r = 0.0;
-            m.color.g = 1.0 - ((frontiers.cost - lowestCost->cost) / range);
-            m.color.b = (frontiers.cost - lowestCost->cost) / range;
+            m.color.g = 1.0 - ((frontiers.cost - lowest_cost->cost) / range);
+            m.color.b = (frontiers.cost - lowest_cost->cost) / range;
         }
 
         // make point marker for individual frontier points
@@ -295,13 +300,13 @@ void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiersL
     // so iterating from current id (id was incremented in the loop above)
     // to last_marker_count deletes all previous markers??
     m.action = visualization_msgs::msg::Marker::DELETE;
-    for (; id < prevMarkerCount; ++id) {
+    for (; id < prev_marker_count; ++id) {
         m.id = int(id);
         markers.push_back(m);
     }
 
-    prevMarkerCount = currentMarkerCount; // store marker size
-    markerPub->publish(markersMsg);
+    prev_marker_count = currentMarkerCount; // store marker size
+    marker_pub->publish(markers_msg);
 }
 
 } // namespace frontier_search

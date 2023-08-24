@@ -42,13 +42,6 @@ add_executable(lifecycle_manager src/main.cpp)
 target_link_libraries(lifecycle_manager ${library_name})
 ament_target_dependencies(lifecycle_manager ${dependencies})
 
-install(TARGETS
-  ${library_name}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -60,6 +53,13 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+install(TARGETS
+  ${library_name}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(TARGETS
   lifecycle_manager
