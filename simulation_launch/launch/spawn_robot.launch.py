@@ -1,18 +1,18 @@
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('simulation_launch')
-    sdf_file = os.path.join(pkg_share, 'models', 'model.sdf')
+    robot_model_file = LaunchConfiguration('robot_model_file')
+    x_pose = LaunchConfiguration('x_pose')
+    y_pose = LaunchConfiguration('y_pose')
 
-    x_pose = LaunchConfiguration('x_pose', default='0.0')
-    y_pose = LaunchConfiguration('y_pose', default='0.0')
-
+    declare_robot_model_file = DeclareLaunchArgument(
+        name='robot_model_file',
+        default_value='',
+        description='Path to robot model file'
+    )
     declare_x_position = DeclareLaunchArgument(
         name='x_pose', 
         default_value='0.0',
@@ -28,8 +28,8 @@ def generate_launch_description():
         package='gazebo_ros',
         executable='spawn_entity.py',
         arguments=[
-            '-entity', 'mobile_bot',
-            '-file', sdf_file,
+            '-entity', 'test_bot',
+            '-file', robot_model_file,
             '-x', x_pose,
             '-y', y_pose,
             '-z', '0.01'
@@ -40,5 +40,6 @@ def generate_launch_description():
     return LaunchDescription([
         declare_x_position,
         declare_y_position,
+        declare_robot_model_file,
         start_gazebo_ros_spawner
     ])

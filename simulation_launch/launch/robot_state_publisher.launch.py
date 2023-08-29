@@ -1,35 +1,36 @@
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('simulation_launch')
-    urdf_file = os.path.join(pkg_share, 'models', 'model.urdf')
-    with open(urdf_file, 'r') as infp:
-        robot_desc = infp.read()
+    robot_model_file = LaunchConfiguration('robot_model_file')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
-    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     delcare_use_sim_time = DeclareLaunchArgument(
         name='use_sim_time',
         default_value='false',
-        description='Use simulation (Gazebo) block if true'
+        description='Use simulation (Gazebo) clock if true'
     )
+    declare_robot_model_file = DeclareLaunchArgument(
+        name='robot_model_file',
+        default_value='',
+        description='Path to robo model file'
+    )
+    
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
         parameters=[{
-            'use_sim_time': use_sim_time,
-            'robot_description': robot_desc
-        }]
+            'use_sim_time': use_sim_time
+        }],
+        arguments=[robot_model_file]
     )
 
     return LaunchDescription([
         delcare_use_sim_time,
+        declare_robot_model_file,
         robot_state_publisher_node
     ])

@@ -23,7 +23,6 @@
   <depend>nav2_util</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>lifecycle_msgs</depend>
-  <depend>std_srvs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

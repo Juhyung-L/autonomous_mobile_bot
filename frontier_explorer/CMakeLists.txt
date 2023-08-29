@@ -18,7 +18,6 @@ find_package(mobile_bot_msgs REQUIRED)
 find_package(nav2_util)
 find_package(rclcpp_lifecycle)
 find_package(lifecycle_msgs)
-find_package(std_srvs)
 
 include_directories(include)
 
@@ -38,11 +37,9 @@ set(dependencies
 
 include_directories(include)
 
-# building client
-add_executable(frontier_explorer_client
-  src/frontier_explorer_client_node.cpp
-  src/frontier_explorer_client.cpp
-)
+# building client (library)
+add_library(frontier_explorer_client SHARED
+  src/frontier_explorer_client.cpp)
 target_include_directories(frontier_explorer_client PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -51,16 +48,13 @@ target_compile_definitions(frontier_explorer_client
 ament_target_dependencies(frontier_explorer_client
   rclcpp
   rclcpp_action
-  mobile_bot_msgs
-  std_srvs
-)
+  mobile_bot_msgs)
 
-# building server
+# building server (executable)
 add_executable(frontier_explorer_server
   src/frontier_explorer_server_node.cpp 
   src/frontier_explorer_server.cpp 
-  src/frontier_search.cpp
-)
+  src/frontier_search.cpp)
 target_include_directories(frontier_explorer_server PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -83,8 +77,24 @@ endif()
 
 install(DIRECTORY include/ DESTINATION include/)
 
-install(TARGETS 
+install(TARGETS
   frontier_explorer_client
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+ament_export_include_directories(include) # enables frontier_explorer_INCLUDE_DIRS
+ament_export_libraries(frontier_explorer_client) # enables frontier_explorer_LIBRARIES
+ament_export_dependencies(
+  rclcpp
+  rclcpp_action
+  mobile_bot_msgs
+)
+# prevents the need to include the dependencies of this package
+# in the other package that is using this shared library
+
+install(TARGETS 
   frontier_explorer_server
   DESTINATION lib/${PROJECT_NAME}
 )

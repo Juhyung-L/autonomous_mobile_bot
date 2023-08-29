@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(mobile_bot_msgs REQUIRED)
 find_package(lifecycle_manager REQUIRED)
+find_package(frontier_explorer REQUIRED)
 
 # debug
 # message(STATUS "lifecycle_manager_INCLUDE_DIRS = ${lifecycle_manager_INCLUDE_DIRS}")
@@ -24,11 +25,13 @@ set(dependencies
   nav2_map_server
   mobile_bot_msgs
   lifecycle_manager
+  frontier_explorer
 )
 
 include_directories(
   include
   ${lifecycle_manager_INCLUDE_DIRS}
+  ${frontier_explorer_INCLUDE_DIRS}
 )
 
 add_executable(map_manager src/main.cpp)
@@ -36,6 +39,7 @@ ament_target_dependencies(map_manager ${dependencies})
 target_link_libraries(map_manager 
   stdc++fs 
   ${lifecycle_manager_LIBRARIES}
+  ${frontier_explorer_LIBRARIES}
 ) # add filesystem to executable
 
 if(BUILD_TESTING)

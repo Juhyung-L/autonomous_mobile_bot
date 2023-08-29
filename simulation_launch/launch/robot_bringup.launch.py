@@ -9,20 +9,23 @@ from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    
     pkg_share = get_package_share_directory('simulation_launch')
     
-    rviz_config_file_path = os.path.join(pkg_share, 'rviz/urdf_config.rviz')
-    ekf_config_file_path = os.path.join(pkg_share, 'config/ekf.yaml')
-
-    pkg_nav2 = get_package_share_directory('nav2_bringup')
-    nav2_params_path = os.path.join(pkg_nav2, 'params', 'nav2_params.yaml')
+    rviz_config_file_path = os.path.join(pkg_share, 'rviz', 'urdf_config.rviz')
+    ekf_config_file_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
+    nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
+    world_file_path = os.path.join(pkg_share, 'worlds', 'turtlebot3_house.world')
+    robot_model_file_path = os.path.join(pkg_share, 'models', 'alphabot2', 'model.urdf')
 
     # launch configuration variables
     rviz_config_file = LaunchConfiguration('rviz_config_file')
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     autostart = LaunchConfiguration('autostart')
+    x_pose = LaunchConfiguration('x_pose')
+    y_pose = LaunchConfiguration('y_pose')
+    world_file = LaunchConfiguration('world_file')
+    robot_model_file = LaunchConfiguration('robot_model_file')
 
     # declare launch arguments
     delcare_rviz_config_file = DeclareLaunchArgument(
@@ -33,17 +36,37 @@ def generate_launch_description():
     delcare_use_sim_time = DeclareLaunchArgument(
         name='use_sim_time',
         default_value='true',
-        description='Use simulation (Gazebo) block if true'
+        description='Use simulation (Gazebo) clock if true'
     )
     declare_autostart = DeclareLaunchArgument(
         name='autostart', 
-        default_value='false',
+        default_value='true',
         description='Automatically startup the nav2 stack'
     )
     declare_params_file = DeclareLaunchArgument(
         name='params_file',
         default_value=nav2_params_path,
         description='Full path to the ROS2 parameters file to use for all launched nodes'
+    )
+    declare_x_pose = DeclareLaunchArgument(
+        name='x_pose',
+        default_value='-2.0',
+        description='X-coordinate of robot spawn point'
+    )
+    declare_y_pose = DeclareLaunchArgument(
+        name='y_pose',
+        default_value='1.0',
+        description='Y-coordinate of robot spawn point'
+    )
+    declare_world_file = DeclareLaunchArgument(
+        name='world_file',
+        default_value=world_file_path,
+        description='Path to world file'
+    )
+    declare_robot_model_file = DeclareLaunchArgument(
+        name='robot_model_file',
+        default_value=robot_model_file_path,
+        description='Path to robot model file'
     )
 
     # declare nodes to launch
@@ -72,16 +95,25 @@ def generate_launch_description():
     # launch nav2
     start_nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_share, 'launch', 'navigation_launch.py')),
-        launch_arguments={'use_sim_time': use_sim_time,
-                          'params_file': params_file,
-                          'autostart': autostart}.items()
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'params_file': params_file,
+            'autostart': autostart
+        }.items()
     )
 
     # launch other launch files
     robot_world_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_share, 'launch', 'robot_world.launch.py')
-        )
+        ),
+        launch_arguments={
+            'x_pose': x_pose,
+            'y_pose': y_pose,
+            'use_sim_time': use_sim_time,
+            'robot_model_file': robot_model_file,
+            'world_file': world_file
+        }.items()
     )
 
     return LaunchDescription([
@@ -89,6 +121,10 @@ def generate_launch_description():
         delcare_use_sim_time,
         declare_autostart,
         declare_params_file,
+        declare_x_pose,
+        declare_y_pose,
+        declare_world_file,
+        declare_robot_model_file,
 
         robot_world_launch,
         robot_localization_node,

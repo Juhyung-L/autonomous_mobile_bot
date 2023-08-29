@@ -29,7 +29,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     # Get the launch directory
-    pkg_share = get_package_share_directory('nav2_bringup')
+    bringup_dir = get_package_share_directory('nav2_bringup')
     slam_dir = get_package_share_directory('slam')
 
     namespace = LaunchConfiguration('namespace')
@@ -86,7 +86,7 @@ def generate_launch_description():
     )
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
-        default_value=os.path.join(pkg_share, 'config', 'nav2_params.yaml'),
+        default_value=os.path.join(bringup_dir, 'params', 'nav2_params.yaml'),
         description='Full path to the ROS2 parameters file to use for all launched nodes'
     )
     declare_autostart_cmd = DeclareLaunchArgument(
@@ -199,14 +199,6 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart},
                             {'node_names': lifecycle_nodes}]
-            ),
-            # non-lifecycle nodes from here
-            Node(
-                package='frontier_explorer',
-                executable='frontier_explorer_client',
-                name='frontier_explorer_client',
-                output='screen',
-                arguments=['--ros-args', '--log-level', log_level]
             ),
         ]
     )

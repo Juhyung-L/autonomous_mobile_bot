@@ -25,7 +25,7 @@ FrontierSearch::FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& 
     // importance of the number of frontier points when calculating the Frontiers' cost
     if (!node->has_parameter("size_weight"))
     {
-        node->declare_parameter<double>("size_weight", 0.1);
+        node->declare_parameter<double>("size_weight", 0.01);
     }
     node->get_parameter("distance_weight", distance_weight);
     node->get_parameter("size_weight", size_weight);

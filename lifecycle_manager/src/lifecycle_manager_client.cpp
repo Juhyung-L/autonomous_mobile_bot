@@ -85,7 +85,7 @@ LifecycleManagerClient::is_active(const std::chrono::nanoseconds timeout)
     node_->get_logger(), "Waiting for the %s service...",
     active_service_name_.c_str());
 
-  if (!is_active_client_->wait_for_service(std::chrono::seconds(1))) {
+  if (!is_active_client_->wait_for_service(timeout)) {
     return SystemStatus::TIMEOUT;
   }
 
@@ -117,7 +117,7 @@ LifecycleManagerClient::add_node(std::string node_name, const std::chrono::nanos
     node_->get_logger(), "Waiting for the %s service...",
     add_node_service_name_.c_str());
 
-  if (!add_node_client_->wait_for_service(std::chrono::seconds(1))) {
+  if (!add_node_client_->wait_for_service(timeout)) {
     return false;
   }
 
@@ -145,7 +145,7 @@ LifecycleManagerClient::remove_node(std::string node_name, const std::chrono::na
     node_->get_logger(), "Waiting for the %s service...",
     remove_node_service_name_.c_str());
 
-  if (!remove_node_client_->wait_for_service(std::chrono::seconds(1))) {
+  if (!remove_node_client_->wait_for_service(timeout)) {
     return false;
   }
 
@@ -174,12 +174,8 @@ LifecycleManagerClient::callService(uint8_t command, const std::chrono::nanoseco
     node_->get_logger(), "Waiting for the %s service...",
     manage_service_name_.c_str());
 
-  while (!manager_client_->wait_for_service(timeout)) {
-    if (!rclcpp::ok()) {
-      RCLCPP_ERROR(node_->get_logger(), "Client interrupted while waiting for service to appear");
-      return false;
-    }
-    RCLCPP_DEBUG(node_->get_logger(), "Waiting for service to appear...");
+  if (!manager_client_->wait_for_service(timeout)) {
+    return false;
   }
 
   RCLCPP_DEBUG(

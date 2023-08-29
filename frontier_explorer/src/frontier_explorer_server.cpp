@@ -177,12 +177,16 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
             result->all_frontiers_cleared = false;
         }
         frontier_explorer_goal_handle->succeed(result); // send result of action
+        RCLCPP_INFO(logger, "Canceling all move base actions"); // cancel move base action
+        if (move_base_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_EXECUTING)
+        {
+            move_base_client->async_cancel_all_goals();
+        }
+        goal_received = false;
         return;
     }
 
     geometry_msgs::msg::Point goal = goal_frontiers->centriod;
-    RCLCPP_INFO(logger, "Picked frontiers:\nCost: %f Centroid: x=%f y=%f",
-                        goal_frontiers->cost, goal_frontiers->centriod.x, goal_frontiers->centriod.y);
 
     bool same_goal = samePoint(goal, prev_goal);
     prev_goal = goal;
@@ -266,6 +270,11 @@ rclcpp_action::CancelResponse FrontierExplorer::handle_canceled(
     const std::shared_ptr<GoalHandleExploreFrontier>& /*goal_handle*/)
 {
     RCLCPP_INFO(logger, "Explore frontier goal canceled");
+    RCLCPP_INFO(logger, "Canceling all move base actions"); // cancel move base action
+    if (move_base_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_EXECUTING)
+    {
+        move_base_client->async_cancel_all_goals();
+    }
     goal_received = false;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
