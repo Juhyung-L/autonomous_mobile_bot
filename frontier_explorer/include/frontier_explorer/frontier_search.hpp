@@ -34,7 +34,7 @@ class FrontierSearch
 {
 public:
     FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& node);
-    std::vector<Frontiers> searchFrontiers(const geometry_msgs::msg::Pose& start_pose);
+    bool searchFrontiers(const geometry_msgs::msg::Pose& start_pose, std::vector<Frontiers>& frontiers_list);
     void updateMap(const nav2_msgs::msg::Costmap::SharedPtr& costmap);
     bool goalOnBlacklist(const geometry_msgs::msg::Point& goal);
     void visualizeFrontiers(const std::vector<Frontiers>& frontiers);
@@ -102,7 +102,7 @@ private:
         std::vector<unsigned int> out;
 
         if (idx > size_x * size_y - 1) {
-            RCLCPP_WARN(rclcpp::get_logger("autonomous_explorer_node"), "Evaluating nhood for offmap point");
+            RCLCPP_WARN(node->get_logger(), "Evaluating nhood for offmap point");
             return out;
         }
 

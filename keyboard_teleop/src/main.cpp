@@ -6,9 +6,6 @@
 
 #include"SDL.h"
 
-namespace keyboard_teleop
-{
-    
 void cleanUp() {
   SDL_Quit();
   rclcpp::shutdown();
@@ -129,5 +126,3 @@ int main(int argc, char** argv) {
   return 0;
 
 }
-
-} // namespace keyboard_teleop

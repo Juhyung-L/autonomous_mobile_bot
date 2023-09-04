@@ -42,6 +42,17 @@ target_link_libraries(map_manager
   ${frontier_explorer_LIBRARIES}
 ) # add filesystem to executable
 
+add_executable(test_lifecycle src/test_lifecycle.cpp)
+ament_target_dependencies(test_lifecycle
+  rclcpp
+  rclcpp_action
+  mobile_bot_msgs
+  lifecycle_manager
+)
+target_link_libraries(test_lifecycle
+  ${lifecycle_manager_LIBRARIES}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -56,14 +67,8 @@ endif()
 
 install(TARGETS
   map_manager
+  test_lifecycle
   DESTINATION lib/${PROJECT_NAME}
 )
-
-# don't install map folder to package share
-# because the map in package share gets replaced by the map from the source directory
-# if the source directory's map folder is empty, the map in package share gets deleted
-# install(DIRECTORY
-#   map
-#   DESTINATION share/${PROJECT_NAME})
 
 ament_package()

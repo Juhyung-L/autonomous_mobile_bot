@@ -74,10 +74,7 @@ nav2_util::CallbackReturn FrontierExplorer::on_deactivate(const rclcpp_lifecycle
     search->marker_pub->on_deactivate();
 
     RCLCPP_INFO(logger, "Canceling all move base actions");
-    if (move_base_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_EXECUTING)
-    {
-        move_base_client->async_cancel_all_goals();
-    }
+    move_base_client->async_cancel_all_goals();
 
     destroyBond();
     return nav2_util::CallbackReturn::SUCCESS;
@@ -119,7 +116,6 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
 {
     // get robot pose
     // then get the nearest free cell
-    std::vector<Frontiers> frontiers_list;
     search->updateMap(costmap);
 
     // try to get map -> robot transform
@@ -137,12 +133,20 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
     geometry_msgs::msg::Pose robot_pose;
     robot_pose.position.x = transform.transform.translation.x;
     robot_pose.position.y = transform.transform.translation.y;
-    frontiers_list = search->searchFrontiers(robot_pose);
 
-    // publish feedback to action client
-    auto feedback = std::make_shared<ExploreFrontier::Feedback>();
-    feedback->map_size = costmap->metadata.size_x * costmap->metadata.size_y;
-    frontier_explorer_goal_handle->publish_feedback(feedback);
+    std::vector<Frontiers> frontiers_list;
+    // 3 situations where searchFrontiers returns false
+    // 1. robot is outside the map 
+    //    - can happen for a short period of time if expanding the map is delayed
+    // 2. robot's center is inside an occupied cell or a cell with unknown occupancy (cell value > MAX_NON_OBSTACLE)
+    //    - the robot can go inside an occupied cell if the robot_radius parameter (in nav2_params.yaml) 
+    //      is set to a value smaller or too close to the robot's actual radius
+    //    - I have never seen a situation where the robot goes inside a cell with unknown occupancy,
+    //      but better safe than sorry
+    if (!search->searchFrontiers(robot_pose, frontiers_list))
+    {
+        return;
+    }
 
     // sort the frontiers
     // pick the frontiers with the lowest cost that is not in the black list
@@ -178,13 +182,14 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
         }
         frontier_explorer_goal_handle->succeed(result); // send result of action
         RCLCPP_INFO(logger, "Canceling all move base actions"); // cancel move base action
-        if (move_base_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_EXECUTING)
-        {
-            move_base_client->async_cancel_all_goals();
-        }
+        move_base_client->async_cancel_all_goals();
         goal_received = false;
         return;
     }
+    // publish feedback to action client
+    auto feedback = std::make_shared<ExploreFrontier::Feedback>();
+    feedback->map_size = costmap->metadata.size_x * costmap->metadata.size_y;
+    frontier_explorer_goal_handle->publish_feedback(feedback);
 
     geometry_msgs::msg::Point goal = goal_frontiers->centriod;
 
@@ -271,10 +276,7 @@ rclcpp_action::CancelResponse FrontierExplorer::handle_canceled(
 {
     RCLCPP_INFO(logger, "Explore frontier goal canceled");
     RCLCPP_INFO(logger, "Canceling all move base actions"); // cancel move base action
-    if (move_base_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_EXECUTING)
-    {
-        move_base_client->async_cancel_all_goals();
-    }
+    move_base_client->async_cancel_all_goals();
     goal_received = false;
     return rclcpp_action::CancelResponse::ACCEPT;
 }

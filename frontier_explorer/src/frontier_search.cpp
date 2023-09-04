@@ -31,25 +31,24 @@ FrontierSearch::FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& 
     node->get_parameter("size_weight", size_weight);
 }
 
-std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg::Pose& start_pose)
+bool FrontierSearch::searchFrontiers(const geometry_msgs::msg::Pose& start_pose, std::vector<Frontiers>& frontiers_list)
 {
     // turn the pose into int
-    // input it into getIndex to get the index 
-    std::vector<Frontiers> frontiers_list;
-
+    // input it into getIndex to get the index
     unsigned int mx, my;
     if (!worldToMap(start_pose.position.x, start_pose.position.y, mx, my))
     {
         RCLCPP_WARN(node->get_logger(), "Robot is outside of map");
-        return frontiers_list;
+        return false;
     }
     unsigned int start_index = cellsToIndex(mx, my);
 
     std::vector<bool> visited(size_x * size_y, false);
     std::queue<unsigned int> bfs;
 
-    // proceed if the cell under the robot has known occupancy
-    // and the occupancy is less than MAX_NON_OBSTACLE
+    // proceed if the cell value is less than or equal to MAX_NON_OBSTACLE
+    // this means the robot's center must be on a cell that with known occupancy
+    // and the cell cannot be occupied
     if (map_data[start_index] <= MAX_NON_OBSTACLE)
     {
         bfs.push(start_index);
@@ -57,9 +56,7 @@ std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg:
     }
     else
     {
-        // TODO: make the robot move forward until a cell 
-        // with less than or equal to MAX_NON_OBSTACLE cell value
-        return frontiers_list; // return empty frontier list
+        return false;
     }
 
     // use bfs to traverse through cells less than MAX_NON_OBSTACLE to find a frontier point
@@ -92,7 +89,7 @@ std::vector<Frontiers> FrontierSearch::searchFrontiers(const geometry_msgs::msg:
         f.cost = frontierCost(f);
     }
 
-    return frontiers_list;
+    return true;
 }
 
 double FrontierSearch::frontierCost(const Frontiers& frontier)
@@ -249,7 +246,6 @@ void FrontierSearch::visualizeFrontiers(const std::vector<Frontiers>& frontiers_
 
     m.action = visualization_msgs::msg::Marker::ADD;
     size_t id = 0; // intialize id to 0
-    RCLCPP_INFO(node->get_logger(), "Visualizing %ld frontiers", frontiers_list.size());
     for (auto& frontiers : frontiers_list) 
     {
         // set the color of the marker

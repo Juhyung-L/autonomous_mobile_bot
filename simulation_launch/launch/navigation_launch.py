@@ -47,7 +47,11 @@ def generate_launch_description():
                        'waypoint_follower',
                        'velocity_smoother',
                        'async_slam',
-                       'frontier_explorer_server']
+                       # 'frontier_explorer_server',
+                       # 'map_saver_server',
+                       # 'map_server',
+                       # 'amcl'
+    ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -183,14 +187,44 @@ def generate_launch_description():
                         [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]
             ),
             Node(
+                package='nav2_map_server',
+                executable='map_saver_server',
+                name='map_saver_server',
+                output='screen',
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings
+            ),
+            Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings
+            ),
+            Node(
+                package='nav2_amcl',
+                executable='amcl',
+                name='amcl',
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings
+            ),
+            Node(
                 package='frontier_explorer',
                 executable='frontier_explorer_server',
                 name='frontier_explorer_server',
                 output='screen',
-                arguments=['--ros-args', '--log-level', log_level]
+                arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings
             ),
-            # changed this node from nav2_lifecycle_manager to lifecycle_manager
-            # (my version of lifecycle manager)
             Node(
                 package='lifecycle_manager',
                 executable='lifecycle_manager',
@@ -205,8 +239,7 @@ def generate_launch_description():
 
     # launch slam
     slam_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')
-        ),
+        PythonLaunchDescriptionSource(os.path.join(slam_dir, 'launch', 'online_async_launch.py')),
         launch_arguments={
             'use_sim_time': use_sim_time
         }.items()

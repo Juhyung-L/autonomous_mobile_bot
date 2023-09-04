@@ -19,7 +19,7 @@ public:
     using GoalHandleExploreFrontier = rclcpp_action::ClientGoalHandle<ExploreFrontier>;
     FrontierExplorerClient(const rclcpp::Node::SharedPtr& node);
     void sendGoal();
-    std::shared_future<GoalHandleExploreFrontier::SharedPtr> action_status;
+    std::shared_future<GoalHandleExploreFrontier::SharedPtr> action_future;
 private:
     void goalResponseCallback(const GoalHandleExploreFrontier::SharedPtr& goal_handle);
     void feedbackCallback(

@@ -14,7 +14,7 @@ def generate_launch_description():
     rviz_config_file_path = os.path.join(pkg_share, 'rviz', 'urdf_config.rviz')
     ekf_config_file_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
-    world_file_path = os.path.join(pkg_share, 'worlds', 'turtlebot3_house.world')
+    world_file_path = os.path.join(pkg_share, 'worlds', 'instant_map.world')
     robot_model_file_path = os.path.join(pkg_share, 'models', 'alphabot2', 'model.urdf')
 
     # launch configuration variables
@@ -39,7 +39,7 @@ def generate_launch_description():
         description='Use simulation (Gazebo) clock if true'
     )
     declare_autostart = DeclareLaunchArgument(
-        name='autostart', 
+        name='autostart',
         default_value='true',
         description='Automatically startup the nav2 stack'
     )
@@ -50,12 +50,12 @@ def generate_launch_description():
     )
     declare_x_pose = DeclareLaunchArgument(
         name='x_pose',
-        default_value='-2.0',
+        default_value='0.0',
         description='X-coordinate of robot spawn point'
     )
     declare_y_pose = DeclareLaunchArgument(
         name='y_pose',
-        default_value='1.0',
+        default_value='0.0',
         description='Y-coordinate of robot spawn point'
     )
     declare_world_file = DeclareLaunchArgument(
@@ -77,7 +77,7 @@ def generate_launch_description():
         output='screen',
         arguments=['-d', rviz_config_file],
     )
-    robot_localization_node = Node( # needs to use simulation time
+    robot_localization_node = Node(
         package='robot_localization',
         executable='ekf_node',
         name='ekf_filter_node',
@@ -87,13 +87,13 @@ def generate_launch_description():
     )
     keyboard_teleop_node = Node(
         package='keyboard_teleop',
-        executable='start_keyboard_teleop',
-        name='keyboard_teleop_node',
+        executable='keyboard_teleop',
+        name='keyboard_teleop',
         output='screen'
     )
 
     # launch nav2
-    start_nav2 = IncludeLaunchDescription(
+    nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_share, 'launch', 'navigation_launch.py')),
         launch_arguments={
             'use_sim_time': use_sim_time,
@@ -131,5 +131,5 @@ def generate_launch_description():
         rviz_node,
         keyboard_teleop_node,
 
-        start_nav2
+        nav2_launch
     ])

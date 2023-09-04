@@ -31,7 +31,7 @@ void FrontierExplorerClient::sendGoal()
     send_goal_options.feedback_callback = std::bind(&FrontierExplorerClient::feedbackCallback, this, _1, _2);
     send_goal_options.result_callback = std::bind(&FrontierExplorerClient::resultCallback, this, _1);
 
-    action_status = action_client->async_send_goal(goal, send_goal_options);
+    action_future = action_client->async_send_goal(goal, send_goal_options);
 }
 
 void FrontierExplorerClient::goalResponseCallback(const GoalHandleExploreFrontier::SharedPtr& goal_handle)
