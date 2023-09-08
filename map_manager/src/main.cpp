@@ -8,7 +8,7 @@
 #include "nav2_map_server/map_saver.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
-#include "lifecycle_manager/lifecycle_manager_client.hpp"
+#include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
 #include "mobile_bot_msgs/action/explore_frontier.hpp"
 #include "frontier_explorer/frontier_explorer_client.hpp"
 
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     // start nav2
     auto node = std::make_shared<rclcpp::Node>("main_app");
     auto lifecycle_client =
-        std::make_shared<lifecycle_manager::LifecycleManagerClient>(
+        std::make_shared<nav2_lifecycle_manager::LifecycleManagerClient>(
             "lifecycle_manager_navigation", node);
     auto save_map_client = node->create_client<nav2_msgs::srv::SaveMap>(
         "map_saver_server/save_map");
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
         lifecycle_client->add_node("frontier_explorer_server");
         lifecycle_client->add_node("map_saver_server");
         lifecycle_client->startup();
-        while (lifecycle_client->is_active() != lifecycle_manager::SystemStatus::ACTIVE
+        while (lifecycle_client->is_active() != nav2_lifecycle_manager::SystemStatus::ACTIVE
                 && rclcpp::ok())
         {
             std::this_thread::sleep_for(100ms);
@@ -122,8 +122,8 @@ int main(int argc, char** argv)
             while (rclcpp::ok()
                    && frontier_explorer_client.action_future.get()->get_status() != rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
             {
-                lifecycle_manager::SystemStatus lifecycle_status = lifecycle_client->is_active();
-                if (lifecycle_status == lifecycle_manager::SystemStatus::ACTIVE)
+                nav2_lifecycle_manager::SystemStatus lifecycle_status = lifecycle_client->is_active();
+                if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::ACTIVE)
                 {
                     RCLCPP_INFO(logger, "\n"
                                         "Mapping in progress...\n"
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
                         break;
                     }
                 }
-                else if (lifecycle_status == lifecycle_manager::SystemStatus::INACTIVE)
+                else if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::INACTIVE)
                 {
                     RCLCPP_INFO(logger, "\n"
                                         "Mapping in paused\n"
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
                         break;
                     }
                 }
-                else if (lifecycle_status == lifecycle_manager::SystemStatus::TIMEOUT)
+                else if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::TIMEOUT)
                 {
                     RCLCPP_INFO(logger, "lifecycle manager timedout");
                 }

@@ -5,7 +5,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
-#include "lifecycle_manager/lifecycle_manager_client.hpp"
+#include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
 #include "mobile_bot_msgs/action/explore_frontier.hpp"
 
 using namespace std::placeholders;
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 
     auto node = std::make_shared<rclcpp::Node>("main_app");
     auto lifecycle_client =
-        std::make_shared<lifecycle_manager::LifecycleManagerClient>(
+        std::make_shared<nav2_lifecycle_manager::LifecycleManagerClient>(
             "lifecycle_manager_navigation", node);
 
     auto handle_user_input = [&]()

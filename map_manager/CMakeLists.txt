@@ -13,24 +13,24 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(mobile_bot_msgs REQUIRED)
-find_package(lifecycle_manager REQUIRED)
+find_package(nav2_lifecycle_manager REQUIRED)
 find_package(frontier_explorer REQUIRED)
 
 # debug
-# message(STATUS "lifecycle_manager_INCLUDE_DIRS = ${lifecycle_manager_INCLUDE_DIRS}")
-# message(STATUS "lifecycle_manager_LIBRARIES = ${lifecycle_manager_LIBRARIES}")
+# message(STATUS "nav2_lifecycle_manager_INCLUDE_DIRS = ${nav2_lifecycle_manager_INCLUDE_DIRS}")
+# message(STATUS "nav2_lifecycle_manager_LIBRARIES = ${nav2_lifecycle_manager_LIBRARIES}")
 
 set(dependencies
   rclcpp
   nav2_map_server
   mobile_bot_msgs
-  lifecycle_manager
+  nav2_lifecycle_manager
   frontier_explorer
 )
 
 include_directories(
   include
-  ${lifecycle_manager_INCLUDE_DIRS}
+  ${nav2_lifecycle_manager_INCLUDE_DIRS}
   ${frontier_explorer_INCLUDE_DIRS}
 )
 
@@ -38,7 +38,7 @@ add_executable(map_manager src/main.cpp)
 ament_target_dependencies(map_manager ${dependencies})
 target_link_libraries(map_manager 
   stdc++fs 
-  ${lifecycle_manager_LIBRARIES}
+  ${nav2_lifecycle_manager_LIBRARIES}
   ${frontier_explorer_LIBRARIES}
 ) # add filesystem to executable
 
@@ -47,10 +47,10 @@ ament_target_dependencies(test_lifecycle
   rclcpp
   rclcpp_action
   mobile_bot_msgs
-  lifecycle_manager
+  nav2_lifecycle_manager
 )
 target_link_libraries(test_lifecycle
-  ${lifecycle_manager_LIBRARIES}
+  ${nav2_lifecycle_manager_LIBRARIES}
 )
 
 if(BUILD_TESTING)

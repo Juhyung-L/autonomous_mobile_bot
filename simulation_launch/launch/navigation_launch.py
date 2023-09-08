@@ -226,7 +226,7 @@ def generate_launch_description():
                 remappings=remappings
             ),
             Node(
-                package='lifecycle_manager',
+                package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
                 name='lifecycle_manager_navigation',
                 output='screen',

@@ -11,3 +11,5 @@ implement error state for
 
 Respawning a node?
 wth is heartbeat for lifecycle node
+
+add all the packages that simulation_launch starts into <exec_depend>
