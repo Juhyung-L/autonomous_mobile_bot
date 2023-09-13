@@ -22,11 +22,11 @@ void FrontierExplorerClient::sendGoal()
     action_client->wait_for_action_server();
     RCLCPP_INFO(node->get_logger(), "frontier explorer action server available");
 
-    auto goal = ExploreFrontier::Goal();
+    auto goal = nav2_msgs::action::ExploreFrontier::Goal();
 
     RCLCPP_INFO(node->get_logger(), "Sending goal");
 
-    auto send_goal_options = rclcpp_action::Client<ExploreFrontier>::SendGoalOptions();
+    auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::ExploreFrontier>::SendGoalOptions();
     send_goal_options.goal_response_callback = std::bind(&FrontierExplorerClient::goalResponseCallback, this, _1);
     send_goal_options.feedback_callback = std::bind(&FrontierExplorerClient::feedbackCallback, this, _1, _2);
     send_goal_options.result_callback = std::bind(&FrontierExplorerClient::resultCallback, this, _1);
@@ -48,7 +48,7 @@ void FrontierExplorerClient::goalResponseCallback(const GoalHandleExploreFrontie
 
 void FrontierExplorerClient::feedbackCallback(
     GoalHandleExploreFrontier::SharedPtr /*goal_handle*/,
-    const std::shared_ptr<const ExploreFrontier::Feedback> feedback)
+    const std::shared_ptr<const nav2_msgs::action::ExploreFrontier::Feedback> feedback)
 {
     RCLCPP_INFO(node->get_logger(), "Map size: %d", feedback->map_size);
 }
@@ -69,15 +69,7 @@ void FrontierExplorerClient::resultCallback(const GoalHandleExploreFrontier::Wra
             RCLCPP_ERROR(node->get_logger(), "Unknown result code");
             return;
     }
-
-    if (result.result->all_frontiers_cleared)
-    {
-        RCLCPP_INFO(node->get_logger(), "All frontiers cleared!");
-    }
-    else
-    {
-        RCLCPP_INFO(node->get_logger(), "Not all frontiers cleared.");
-    }
+    action_result = result.result;
 }
 
 } // namespace frontier_explorer_client

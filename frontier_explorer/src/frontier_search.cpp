@@ -31,12 +31,12 @@ FrontierSearch::FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& 
     node->get_parameter("size_weight", size_weight);
 }
 
-bool FrontierSearch::searchFrontiers(const geometry_msgs::msg::Pose& start_pose, std::vector<Frontiers>& frontiers_list)
+bool FrontierSearch::searchFrontiers(const geometry_msgs::msg::PoseStamped& start_pose, std::vector<Frontiers>& frontiers_list)
 {
     // turn the pose into int
     // input it into getIndex to get the index
     unsigned int mx, my;
-    if (!worldToMap(start_pose.position.x, start_pose.position.y, mx, my))
+    if (!worldToMap(start_pose.pose.position.x, start_pose.pose.position.y, mx, my))
     {
         RCLCPP_WARN(node->get_logger(), "Robot is outside of map");
         return false;
@@ -112,7 +112,7 @@ bool FrontierSearch::isNewFrontier(unsigned int idx)
 }
 
 Frontiers FrontierSearch::buildNewFrontiers(unsigned int start_idx, std::vector<bool>& visited,
-                                            const geometry_msgs::msg::Pose& robot_pose)
+                                            const geometry_msgs::msg::PoseStamped& robot_pose)
 {
     // get all connected frontiers and return the Frontiers struct
     // by traversing through cells less than MAX_NON_OBSTACLE
@@ -143,7 +143,7 @@ Frontiers FrontierSearch::buildNewFrontiers(unsigned int start_idx, std::vector<
         frontiers.centriod.y += wy;
 
         // getting minimum distance from robot pose
-        double distance = distanceFormula(robot_pose.position.x, robot_pose.position.y, wx, wy);
+        double distance = distanceFormula(robot_pose.pose.position.x, robot_pose.pose.position.y, wx, wy);
         if (frontiers.min_distance > distance)
         {
             frontiers.min_distance = distance;

@@ -47,10 +47,10 @@ def generate_launch_description():
                        'waypoint_follower',
                        'velocity_smoother',
                        'async_slam',
-                       # 'frontier_explorer_server',
-                       # 'map_saver_server',
-                       # 'map_server',
-                       # 'amcl'
+                       'frontier_explorer_server',
+                       'map_saver_server',
+                       'map_server',
+                       'amcl'
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -232,7 +232,7 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart},
-                            {'node_names': lifecycle_nodes}]
+                            {'all_node_names': lifecycle_nodes}]
             ),
         ]
     )

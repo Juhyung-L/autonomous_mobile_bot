@@ -7,7 +7,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "nav2_msgs/msg/costmap.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -34,7 +34,7 @@ class FrontierSearch
 {
 public:
     FrontierSearch(const std::shared_ptr<nav2_util::LifecycleNode>& node);
-    bool searchFrontiers(const geometry_msgs::msg::Pose& start_pose, std::vector<Frontiers>& frontiers_list);
+    bool searchFrontiers(const geometry_msgs::msg::PoseStamped& start_pose, std::vector<Frontiers>& frontiers_list);
     void updateMap(const nav2_msgs::msg::Costmap::SharedPtr& costmap);
     bool goalOnBlacklist(const geometry_msgs::msg::Point& goal);
     void visualizeFrontiers(const std::vector<Frontiers>& frontiers);
@@ -57,7 +57,7 @@ private:
 
     bool isNewFrontier(unsigned int idx);
     Frontiers buildNewFrontiers(unsigned int start_idx, std::vector<bool>& visited,
-                                                const geometry_msgs::msg::Pose& robot_pose);
+        const geometry_msgs::msg::PoseStamped& robot_pose);
     double frontierCost(const Frontiers& frontier);
     
     unsigned int cellsToIndex(unsigned int map_x, unsigned int map_y)

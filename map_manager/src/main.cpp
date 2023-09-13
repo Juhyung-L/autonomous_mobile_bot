@@ -7,12 +7,11 @@
 #include "nav2_map_server/map_mode.hpp"
 #include "nav2_map_server/map_saver.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 
 #include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
-#include "mobile_bot_msgs/action/explore_frontier.hpp"
 #include "frontier_explorer/frontier_explorer_client.hpp"
 
-using namespace nav2_map_server;
 using namespace std::placeholders;
 using namespace std::chrono_literals;
 
@@ -35,22 +34,35 @@ int main(int argc, char** argv)
             "lifecycle_manager_navigation", node);
     auto save_map_client = node->create_client<nav2_msgs::srv::SaveMap>(
         "map_saver_server/save_map");
-    frontier_explorer::FrontierExplorerClient frontier_explorer_client(node);
+    auto frontier_explorer_client = 
+        std::make_shared<frontier_explorer::FrontierExplorerClient>(node);
+    auto amcl_initial_pose_pub = 
+        node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "initialpose", rclcpp::SystemDefaultsQoS());        
 
     auto start_mapping = [&]()
     {
         RCLCPP_INFO(logger, "Starting autonomous mapping...");
-        lifecycle_client->add_node("async_slam");
-        lifecycle_client->add_node("frontier_explorer_server");
-        lifecycle_client->add_node("map_saver_server");
+        lifecycle_client->add_node({"async_slam", 
+            "frontier_explorer_server", 
+            "map_saver_server"});
         lifecycle_client->startup();
         while (lifecycle_client->is_active() != nav2_lifecycle_manager::SystemStatus::ACTIVE
                 && rclcpp::ok())
         {
             std::this_thread::sleep_for(100ms);
         }
-        frontier_explorer_client.sendGoal();
+        frontier_explorer_client->sendGoal();
     };
+
+    // add all necessary node for the nav2 stack to function
+    lifecycle_client->add_node({"controller_server",
+        "smoother_server",
+        "planner_server",
+        "behavior_server",
+        "bt_navigator",
+        "waypoint_follower",
+        "velocity_smoother",});
 
     auto event_loop = [&]()
     {
@@ -117,10 +129,10 @@ int main(int argc, char** argv)
         }
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-        if (frontier_explorer_client.action_future.valid())
+        if (frontier_explorer_client->action_future.valid())
         {
             while (rclcpp::ok()
-                   && frontier_explorer_client.action_future.get()->get_status() != rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
+                   && frontier_explorer_client->action_future.get()->get_status() != rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
             {
                 nav2_lifecycle_manager::SystemStatus lifecycle_status = lifecycle_client->is_active();
                 if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::ACTIVE)
@@ -163,8 +175,12 @@ int main(int argc, char** argv)
                 }
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
+            geometry_msgs::msg::PoseWithCovarianceStamped frontier_explorer_end_pose;
+            frontier_explorer_end_pose.pose.pose = frontier_explorer_client->action_result->end_pose.pose;
+            frontier_explorer_end_pose.header = frontier_explorer_client->action_result->end_pose.header;
+            amcl_initial_pose_pub->publish(frontier_explorer_end_pose);
 
-            if (frontier_explorer_client.action_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
+            if (frontier_explorer_client->action_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
             {
                 RCLCPP_INFO(logger, "Saving map...");
                 auto request = std::make_shared<nav2_msgs::srv::SaveMap::Request>();
@@ -182,12 +198,11 @@ int main(int argc, char** argv)
 
         // load map from file
         lifecycle_client->pause();
-        lifecycle_client->remove_node("async_slam");
-        lifecycle_client->remove_node("frontier_explorer_server");
-        lifecycle_client->remove_node("map_saver_server");
+        lifecycle_client->remove_node({"async_slam", 
+            "frontier_explorer_server", 
+            "map_saver_server"});
 
-        lifecycle_client->add_node("map_server");
-        lifecycle_client->add_node("amcl");
+        lifecycle_client->add_node({"map_server", "amcl"});
         lifecycle_client->resume();
 
         // start amcl

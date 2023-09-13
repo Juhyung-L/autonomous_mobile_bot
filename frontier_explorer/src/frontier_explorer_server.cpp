@@ -10,7 +10,7 @@ namespace frontier_explorer
 {
 
 static bool samePoint(const geometry_msgs::msg::Point& one,
-                              const geometry_msgs::msg::Point& two)
+    const geometry_msgs::msg::Point& two)
 {
   double dx = one.x - two.x;
   double dy = one.y - two.y;
@@ -23,11 +23,14 @@ FrontierExplorer::FrontierExplorer(const rclcpp::NodeOptions& options)
 { 
     this->declare_parameter<std::string>("robot_frame", "base_footprint");
     this->declare_parameter<int>("progress_timeout", 10);
+    this->declare_parameter<double>("transform_tolerance", 0.3);
 
     // robot's base footprint
     this->get_parameter("robot_frame", robot_frame);
     // time required for a goal to be considered unreachable and be put into the blacklist
     this->get_parameter("progress_timeout", progress_timeout);
+    // maximum time to wait for a transform
+    this->get_parameter("transform_tolerance", transform_tolerance);
 }
 
 nav2_util::CallbackReturn FrontierExplorer::on_configure(const rclcpp_lifecycle::State & /*state*/)
@@ -102,6 +105,13 @@ nav2_util::CallbackReturn FrontierExplorer::on_shutdown(const rclcpp_lifecycle::
     return nav2_util::CallbackReturn::SUCCESS;
 }
 
+bool FrontierExplorer::getRobotPose(geometry_msgs::msg::PoseStamped & global_pose)
+{
+    return nav2_util::getCurrentPose(
+    global_pose, *tf_buffer,
+    map_frame ,robot_frame, transform_tolerance);
+}
+
 void FrontierExplorer::costmapCallback(const nav2_msgs::msg::Costmap::SharedPtr msg)
 {   
     map_frame = msg->header.frame_id;
@@ -119,20 +129,11 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
     search->updateMap(costmap);
 
     // try to get map -> robot transform
-    geometry_msgs::msg::TransformStamped transform;
-    try
+    geometry_msgs::msg::PoseStamped robot_pose;
+    if (!getRobotPose(robot_pose))
     {
-        transform = tf_buffer->lookupTransform(map_frame, robot_frame, this->now(), 100ms);
-    }
-    catch (const std::runtime_error& e)
-    {
-        RCLCPP_WARN(logger, "Could not get map -> robot transform: %s", e.what());
         return;
     }
-    
-    geometry_msgs::msg::Pose robot_pose;
-    robot_pose.position.x = transform.transform.translation.x;
-    robot_pose.position.y = transform.transform.translation.y;
 
     std::vector<Frontiers> frontiers_list;
     // 3 situations where searchFrontiers returns false
@@ -172,14 +173,8 @@ void FrontierExplorer::planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap
     {
         RCLCPP_INFO(logger, "No frontiers left to explore, sending result to ExploreFrontier action client");
         auto result = std::make_shared<ExploreFrontier::Result>();
-        if (frontiers_list.empty())
-        {
-            result->all_frontiers_cleared = true;
-        }
-        else 
-        {
-            result->all_frontiers_cleared = false;
-        }
+        result->end_pose.pose = robot_pose.pose;
+        result->end_pose.header = robot_pose.header;
         frontier_explorer_goal_handle->succeed(result); // send result of action
         RCLCPP_INFO(logger, "Canceling all move base actions"); // cancel move base action
         move_base_client->async_cancel_all_goals();

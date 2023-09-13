@@ -13,11 +13,12 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "geometry_msgs/msg/pose.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "nav2_util/lifecycle_node.hpp"
+#include "nav2_util/robot_utils.hpp"
 
-#include "mobile_bot_msgs/action/explore_frontier.hpp"
+#include "nav2_msgs/action/explore_frontier.hpp"
 #include "frontier_explorer/frontier_search.hpp"
 
 namespace frontier_explorer
@@ -29,7 +30,7 @@ class FrontierExplorer : public nav2_util::LifecycleNode
 {
 public:
     using NavigationGoalHandle = rclcpp_action::ClientGoalHandle<nav2_msgs::action::NavigateToPose>;
-    using ExploreFrontier = mobile_bot_msgs::action::ExploreFrontier;
+    using ExploreFrontier = nav2_msgs::action::ExploreFrontier;
     using GoalHandleExploreFrontier = rclcpp_action::ServerGoalHandle<ExploreFrontier>;
 
     FrontierExplorer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
@@ -60,6 +61,7 @@ private:
     void costmapCallback(const nav2_msgs::msg::Costmap::SharedPtr msg);
     void planPath(const nav2_msgs::msg::Costmap::SharedPtr costmap);
     void reachedGoal(const NavigationGoalHandle::WrappedResult& result);
+    bool getRobotPose(geometry_msgs::msg::PoseStamped & global_pose);
         
     std::string map_frame;
     std::string robot_frame;
@@ -78,6 +80,7 @@ private:
     rclcpp::Time last_progress;
     int progress_timeout;
     bool goal_received;
+    double transform_tolerance;
 
     // action server stuff
     rclcpp_action::GoalResponse handle_goal(

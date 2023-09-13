@@ -72,12 +72,6 @@ Slam::on_configure(const rclcpp_lifecycle::State & state)
     state_, processor_type_);
   reprocessing_transform_.setIdentity();
 
-  threads_.push_back(std::make_unique<boost::thread>(
-      boost::bind(&Slam::publishTransformLoop,
-      this, transform_publish_period)));
-  threads_.push_back(std::make_unique<boost::thread>(
-      boost::bind(&Slam::publishVisualizations, this)));
-
   loadPoseGraphByParams();
 
   return nav2_util::CallbackReturn::SUCCESS;
@@ -94,7 +88,13 @@ Slam::on_activate(const rclcpp_lifecycle::State & state)
   closure_assistant_->marker_publisher_->on_activate();
   closure_assistant_->scan_publisher_->on_activate();
 
+  // start the thread that publishes map->odom transform and the visualizations
   continue_threads_ = true;
+  threads_.push_back(std::make_unique<boost::thread>(
+      boost::bind(&Slam::publishTransformLoop,
+      this, transform_publish_period)));
+  threads_.push_back(std::make_unique<boost::thread>(
+      boost::bind(&Slam::publishVisualizations, this)));
 
   // create bond connection
   createBond();
@@ -108,6 +108,10 @@ Slam::on_deactivate(const rclcpp_lifecycle::State & state)
   RCLCPP_INFO(get_logger(), "Deactivating slam...");
 
   continue_threads_ = false;
+  for (int i = 0; i != threads_.size(); i++) {
+    threads_[i]->join(); // join() blocks until the threads have terminated
+  }
+  threads_.clear();
 
   sst_->on_deactivate();
   sstm_->on_deactivate();
@@ -125,11 +129,6 @@ nav2_util::CallbackReturn
 Slam::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Cleaning up slam...");
-
-  for (int i = 0; i != threads_.size(); i++) {
-    threads_[i]->join(); // join() blocks until the threads have terminated
-  }
-  threads_.clear();
 
   scan_filter_.reset();
   scan_filter_sub_.reset();

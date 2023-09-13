@@ -7,7 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
-#include "mobile_bot_msgs/action/explore_frontier.hpp"
+#include "nav2_msgs/action/explore_frontier.hpp"
 
 namespace frontier_explorer
 {
@@ -15,11 +15,13 @@ namespace frontier_explorer
 class FrontierExplorerClient
 {
 public:
-    using ExploreFrontier = mobile_bot_msgs::action::ExploreFrontier;
+    using ExploreFrontier = nav2_msgs::action::ExploreFrontier;
     using GoalHandleExploreFrontier = rclcpp_action::ClientGoalHandle<ExploreFrontier>;
     FrontierExplorerClient(const rclcpp::Node::SharedPtr& node);
     void sendGoal();
     std::shared_future<GoalHandleExploreFrontier::SharedPtr> action_future;
+    ExploreFrontier::Result::SharedPtr action_result;
+    
 private:
     void goalResponseCallback(const GoalHandleExploreFrontier::SharedPtr& goal_handle);
     void feedbackCallback(

@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_map_server REQUIRED)
-find_package(mobile_bot_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
 find_package(nav2_lifecycle_manager REQUIRED)
 find_package(frontier_explorer REQUIRED)
 
@@ -23,7 +23,7 @@ find_package(frontier_explorer REQUIRED)
 set(dependencies
   rclcpp
   nav2_map_server
-  mobile_bot_msgs
+  nav2_msgs
   nav2_lifecycle_manager
   frontier_explorer
 )
@@ -46,7 +46,7 @@ add_executable(test_lifecycle src/test_lifecycle.cpp)
 ament_target_dependencies(test_lifecycle
   rclcpp
   rclcpp_action
-  mobile_bot_msgs
+  nav2_msgs
   nav2_lifecycle_manager
 )
 target_link_libraries(test_lifecycle

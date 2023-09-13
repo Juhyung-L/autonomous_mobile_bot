@@ -38,9 +38,9 @@ LifecycleManagerClient::LifecycleManagerClient(
     manage_service_name_, node_);
   is_active_client_ = std::make_shared<nav2_util::ServiceClient<std_srvs::srv::Trigger>>(
     active_service_name_, node_);
-  add_node_client_ = std::make_shared<nav2_util::ServiceClient<mobile_bot_msgs::srv::AddNode>>(
+  add_node_client_ = std::make_shared<nav2_util::ServiceClient<nav2_msgs::srv::AddNode>>(
     add_node_service_name_, node_);
-  remove_node_client_ = std::make_shared<nav2_util::ServiceClient<mobile_bot_msgs::srv::RemoveNode>>(
+  remove_node_client_ = std::make_shared<nav2_util::ServiceClient<nav2_msgs::srv::RemoveNode>>(
     remove_node_service_name_, node_);
 }
 
@@ -106,11 +106,11 @@ LifecycleManagerClient::is_active(const std::chrono::nanoseconds timeout)
 }
 
 bool
-LifecycleManagerClient::add_node(std::string node_name, const std::chrono::nanoseconds timeout)
+LifecycleManagerClient::add_node(std::vector<std::string> node_names, const std::chrono::nanoseconds timeout)
 {
-  auto request = std::make_shared<mobile_bot_msgs::srv::AddNode::Request>();
-  auto response = std::make_shared<mobile_bot_msgs::srv::AddNode::Response>();
-  request->node_name = node_name;
+  auto request = std::make_shared<nav2_msgs::srv::AddNode::Request>();
+  auto response = std::make_shared<nav2_msgs::srv::AddNode::Response>();
+  request->node_names = node_names;
 
   RCLCPP_DEBUG(
     node_->get_logger(), "Waiting for the %s service...",
@@ -134,11 +134,11 @@ LifecycleManagerClient::add_node(std::string node_name, const std::chrono::nanos
 }
 
 bool 
-LifecycleManagerClient::remove_node(std::string node_name, const std::chrono::nanoseconds timeout)
+LifecycleManagerClient::remove_node(std::vector<std::string> node_names, const std::chrono::nanoseconds timeout)
 {
-  auto request = std::make_shared<mobile_bot_msgs::srv::RemoveNode::Request>();
-  auto response = std::make_shared<mobile_bot_msgs::srv::RemoveNode::Response>();
-  request->node_name = node_name;
+  auto request = std::make_shared<nav2_msgs::srv::RemoveNode::Request>();
+  auto response = std::make_shared<nav2_msgs::srv::RemoveNode::Response>();
+  request->node_names = node_names;
 
   RCLCPP_DEBUG(
     node_->get_logger(), "Waiting for the %s service...",

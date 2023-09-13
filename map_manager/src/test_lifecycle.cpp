@@ -6,7 +6,7 @@
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
 #include "nav2_lifecycle_manager/lifecycle_manager_client.hpp"
-#include "mobile_bot_msgs/action/explore_frontier.hpp"
+#include "nav2_msgs/action/explore_frontier.hpp"
 
 using namespace std::placeholders;
 

@@ -1,0 +1,5 @@
+# service call to add a node to the lifecycle management
+
+string[] node_names
+---
+bool success

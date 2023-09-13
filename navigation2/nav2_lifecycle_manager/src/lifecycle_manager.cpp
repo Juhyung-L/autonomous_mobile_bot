@@ -17,6 +17,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <algorithm>
 
 #include "rclcpp/rclcpp.hpp"
 #include "nav2_lifecycle_manager/lifecycle_manager.hpp"
@@ -38,7 +40,7 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
 
   // The list of names is parameterized, allowing this module to be used with a different set
   // of nodes
-  declare_parameter("node_names", rclcpp::PARAMETER_STRING_ARRAY);
+  declare_parameter("all_node_names", rclcpp::PARAMETER_STRING_ARRAY);
   declare_parameter("autostart", rclcpp::ParameterValue(false));
   declare_parameter("bond_timeout", 4.0);
   declare_parameter("bond_respawn_max_duration", 10.0);
@@ -46,7 +48,7 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
 
   registerRclPreshutdownCallback();
 
-  node_names_ = get_parameter("node_names").as_string_array();
+  all_node_names_ = get_parameter("all_node_names").as_string_array();
   get_parameter("autostart", autostart_);
   double bond_timeout_s;
   get_parameter("bond_timeout", bond_timeout_s);
@@ -72,13 +74,13 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
     rmw_qos_profile_system_default,
     callback_group_);
 
-  add_node_srv = create_service<mobile_bot_msgs::srv::AddNode>(
+  add_node_srv_ = create_service<nav2_msgs::srv::AddNode>(
     get_name() + std::string("/add_node"),
     std::bind(&LifecycleManager::addNodeCallback, this, _1, _2, _3),
     rmw_qos_profile_system_default,
     callback_group_);
 
-  remove_node_srv = create_service<mobile_bot_msgs::srv::RemoveNode>(
+  remove_node_srv_ = create_service<nav2_msgs::srv::RemoveNode>(
     get_name() + std::string("/remove_node"),
     std::bind(&LifecycleManager::removeNodeCallback, this, _1, _2, _3),
     rmw_qos_profile_system_default,
@@ -162,56 +164,108 @@ LifecycleManager::isActiveCallback(
 void 
 LifecycleManager::addNodeCallback(
   const std::shared_ptr<rmw_request_id_t> /*request_header*/,
-  const std::shared_ptr<mobile_bot_msgs::srv::AddNode::Request> request,
-  std::shared_ptr<mobile_bot_msgs::srv::AddNode::Response> response)
+  const std::shared_ptr<nav2_msgs::srv::AddNode::Request> request,
+  std::shared_ptr<nav2_msgs::srv::AddNode::Response> response)
 {
   if (system_active_)
   {
     RCLCPP_ERROR(get_logger(), 
-      "Could not add node %s to lifecycle manager because other nodes are active\n"
-      "You must deactivate the other nodes before adding this node", request->node_name.c_str());
+      "Could not add nodes to lifecycle manager because other nodes are active\n"
+      "You must deactivate the other nodes before adding this node");
+    response->success = false;
+    return;
+  }
+  std::stringstream duplicate_node_error_ss;
+  for (std::string& node_name : request->node_names)
+  {
+    // found the requested node name from managed_node_names
+    if (std::find(managed_node_names_.begin(), managed_node_names_.end(), node_name) != managed_node_names_.end())
+    {
+      duplicate_node_error_ss << node_name << " ";
+    }
+  }
+  if (!duplicate_node_error_ss.str().empty())
+  {
+    RCLCPP_ERROR(get_logger(),
+      "Nodes [%s] are already added to lifecycle management", duplicate_node_error_ss.str().c_str());
     response->success = false;
     return;
   }
 
-  node_names_.push_back(request->node_name);
+  // insert node names into managed_node_names_ while preserving the order from all_node_names
+  std::vector<std::string> managed_node_names_cpy(managed_node_names_);
+  managed_node_names_.clear();
+  std::vector<std::string>::iterator it1 = managed_node_names_cpy.begin();
+  std::vector<std::string>::iterator it2 = request->node_names.begin();
+
+  while (it1 != managed_node_names_cpy.end() || it2 != request->node_names.end())
+  {
+    uint8_t i = 0;
+    if (it1 != managed_node_names_cpy.end() && *it1 == all_node_names_[i])
+    {
+      managed_node_names_.push_back(*it1);
+      ++it1;
+    }
+    else if (it2 != request->node_names.end() && *it2 == all_node_names_[i])
+    {
+      managed_node_names_.push_back(*it2);
+      ++it2;
+    }
+    ++i;
+  }
   response->success = true;
 }
 
 void
 LifecycleManager::removeNodeCallback(
   const std::shared_ptr<rmw_request_id_t> /*request_header*/,
-  const std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Request> request,
-  std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Response> response)
+  const std::shared_ptr<nav2_msgs::srv::RemoveNode::Request> request,
+  std::shared_ptr<nav2_msgs::srv::RemoveNode::Response> response)
 {
   if (system_active_)
   {
     RCLCPP_ERROR(get_logger(), 
-      "Could not remove node %s from lifecycle manager because other nodes are active\n"
-      "You must deactivate the other nodes before removing this node", request->node_name.c_str());
+      "Could not remove nodes from lifecycle manager because other nodes are active\n"
+      "You must deactivate the other nodes before removing this node");
     response->success = false;
     return;
   }
-
-  // shutdown the node to be removed
-  try
+  std::stringstream invalid_node_error_ss;
+  for (std::string& node_name : request->node_names)
   {
-    changeStateForNode(request->node_name, Transition::TRANSITION_CLEANUP);
-    changeStateForNode(request->node_name, Transition::TRANSITION_UNCONFIGURED_SHUTDOWN);
+    // could not find the requested node name from maanged_node_names
+    if (std::find(managed_node_names_.begin(), managed_node_names_.end(), node_name) == managed_node_names_.end())
+    {
+      invalid_node_error_ss << node_name << " ";
+    }
   }
-  catch (const std::runtime_error& e)
+  if (!invalid_node_error_ss.str().empty())
   {
     RCLCPP_ERROR(get_logger(),
-      "Failed to change state for node: %s. Exception: %s.", request->node_name.c_str(), e.what());
+      "Nodes [%s] are not lifecycle-managed and cannot be removed", invalid_node_error_ss.str().c_str());
     response->success = false;
     return;
   }
-
-  // remove the node from node_names_ (std::vector) and node_map_ (std::map)
-  node_names_.erase(
-    std::remove(node_names_.begin(), node_names_.end(), request->node_name), node_names_.end());
-  node_map_[request->node_name].reset(); // destory the LifecycleServiceClient object
-  node_map_.erase(request->node_name);
+  
+  for (std::string& node_name : request->node_names)
+  {
+    // shutdown the node to be removed
+    try
+    {
+      changeStateForNode(node_name, Transition::TRANSITION_CLEANUP);
+      changeStateForNode(node_name, Transition::TRANSITION_UNCONFIGURED_SHUTDOWN);
+    }
+    catch (const std::runtime_error& e)
+    {
+      RCLCPP_ERROR(get_logger(),
+        "Failed to change state for node: %s. Exception: %s.", node_name.c_str(), e.what());
+      response->success = false;
+      return;
+    }
+    // remove the node from node_names_ (std::vector) and node_map_ (std::map)
+    managed_node_names_.erase(
+      std::remove(managed_node_names_.begin(), managed_node_names_.end(), node_name), managed_node_names_.end());
+  }
 
   response->success = true;
   return;
@@ -231,7 +285,7 @@ void
 LifecycleManager::createLifecycleServiceClients()
 {
   message("Creating and initializing lifecycle service clients");
-  for (auto & node_name : node_names_) {
+  for (auto & node_name : all_node_names_) {
     node_map_[node_name] =
       std::make_shared<LifecycleServiceClient>(node_name, shared_from_this());
   }
@@ -304,7 +358,7 @@ LifecycleManager::changeStateForAllNodes(std::uint8_t transition, bool hard_chan
   if (transition == Transition::TRANSITION_CONFIGURE ||
     transition == Transition::TRANSITION_ACTIVATE)
   {
-    for (auto & node_name : node_names_) {
+    for (auto & node_name : managed_node_names_) {
       try {
         if (!changeStateForNode(node_name, transition) && !hard_change) {
           return false;
@@ -318,7 +372,7 @@ LifecycleManager::changeStateForAllNodes(std::uint8_t transition, bool hard_chan
     }
   } else {
     std::vector<std::string>::reverse_iterator rit;
-    for (rit = node_names_.rbegin(); rit != node_names_.rend(); ++rit) {
+    for (rit = managed_node_names_.rbegin(); rit != managed_node_names_.rend(); ++rit) {
       try {
         if (!changeStateForNode(*rit, transition) && !hard_change) {
           return false;
@@ -463,7 +517,8 @@ LifecycleManager::onRclPreshutdown()
    * to prevent the bond map being used. Likewise, squash the service thread.
    */
   service_thread_.reset();
-  node_names_.clear();
+  all_node_names_.clear();
+  managed_node_names_.clear();
   node_map_.clear();
   bond_map_.clear();
 }
@@ -485,7 +540,7 @@ LifecycleManager::checkBondConnections()
     return;
   }
 
-  for (auto & node_name : node_names_) {
+  for (auto & node_name : managed_node_names_) {
     if (!rclcpp::ok()) {
       return;
     }
@@ -528,7 +583,7 @@ LifecycleManager::checkBondRespawnConnection()
 
   // Note: system_active_ is inverted since this should be in a failure
   // condition. If another outside user actives the system again, this should not process.
-  if (system_active_ || !rclcpp::ok() || node_names_.empty()) {
+  if (system_active_ || !rclcpp::ok() || managed_node_names_.empty()) {
     bond_respawn_start_time_ = rclcpp::Time(0);
     bond_respawn_timer_.reset();
     return;
@@ -536,8 +591,8 @@ LifecycleManager::checkBondRespawnConnection()
 
   // Check number of live connections after a bond failure
   int live_servers = 0;
-  const int max_live_servers = node_names_.size();
-  for (auto & node_name : node_names_) {
+  const int max_live_servers = managed_node_names_.size();
+  for (auto & node_name : managed_node_names_) {
     if (!rclcpp::ok()) {
       return;
     }

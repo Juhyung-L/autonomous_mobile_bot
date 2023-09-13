@@ -30,8 +30,8 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "bondcpp/bond.hpp"
 #include "diagnostic_updater/diagnostic_updater.hpp"
-#include "mobile_bot_msgs/srv/add_node.hpp"
-#include "mobile_bot_msgs/srv/remove_node.hpp"
+#include "nav2_msgs/srv/add_node.hpp"
+#include "nav2_msgs/srv/remove_node.hpp"
 
 namespace nav2_lifecycle_manager
 {
@@ -65,8 +65,8 @@ protected:
   // The services provided by this node
   rclcpp::Service<ManageLifecycleNodes>::SharedPtr manager_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr is_active_srv_;
-  rclcpp::Service<mobile_bot_msgs::srv::AddNode>::SharedPtr add_node_srv;
-  rclcpp::Service<mobile_bot_msgs::srv::RemoveNode>::SharedPtr remove_node_srv;
+  rclcpp::Service<nav2_msgs::srv::AddNode>::SharedPtr add_node_srv_;
+  rclcpp::Service<nav2_msgs::srv::RemoveNode>::SharedPtr remove_node_srv_;
   /**
    * @brief Lifecycle node manager callback function
    * @param request_header Header of the service request
@@ -96,8 +96,8 @@ protected:
    */
   void addNodeCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<mobile_bot_msgs::srv::AddNode::Request> request,
-    std::shared_ptr<mobile_bot_msgs::srv::AddNode::Response> response);
+    const std::shared_ptr<nav2_msgs::srv::AddNode::Request> request,
+    std::shared_ptr<nav2_msgs::srv::AddNode::Response> response);
   /**
    * @brief Callback to remove a node from the lifecycle manager
    * @param request_header Header of the request
@@ -106,8 +106,8 @@ protected:
    */
   void removeNodeCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Request> request,
-    std::shared_ptr<mobile_bot_msgs::srv::RemoveNode::Response> response);
+    const std::shared_ptr<nav2_msgs::srv::RemoveNode::Request> request,
+    std::shared_ptr<nav2_msgs::srv::RemoveNode::Response> response);
   
   // Support functions for the service calls
   /**
@@ -241,7 +241,8 @@ protected:
   std::unordered_map<std::uint8_t, std::uint8_t> transition_state_map_;
 
   // The names of the nodes to be managed, in the order of desired bring-up
-  std::vector<std::string> node_names_;
+  std::vector<std::string> all_node_names_;
+  std::vector<std::string> managed_node_names_;
 
   // Whether to automatically start up the system
   bool autostart_;

@@ -40,7 +40,7 @@ def generate_launch_description():
     )
     declare_autostart = DeclareLaunchArgument(
         name='autostart',
-        default_value='true',
+        default_value='false',
         description='Automatically startup the nav2 stack'
     )
     declare_params_file = DeclareLaunchArgument(

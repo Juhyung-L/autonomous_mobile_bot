@@ -35,8 +35,6 @@ set(dependencies
   lifecycle_msgs
 )
 
-include_directories(include)
-
 # building client (library)
 add_library(frontier_explorer_client SHARED
   src/frontier_explorer_client.cpp)
@@ -44,11 +42,11 @@ target_include_directories(frontier_explorer_client PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_compile_definitions(frontier_explorer_client
-  PRIVATE "MOBILE_BOT_MSGS_CPP_BUILDING_DLL")
+  PRIVATE "NAV2_MSGS_CPP_BUILDING_DLL")
 ament_target_dependencies(frontier_explorer_client
   rclcpp
   rclcpp_action
-  mobile_bot_msgs)
+  nav2_msgs)
 
 # building server (executable)
 add_executable(frontier_explorer_server
@@ -59,7 +57,7 @@ target_include_directories(frontier_explorer_server PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_compile_definitions(frontier_explorer_server
-  PRIVATE "MOBILE_BOT_MSGS_CPP_BUILDING_DLL")
+  PRIVATE "NAV2_MSGS_CPP_BUILDING_DLL")
 ament_target_dependencies(frontier_explorer_server ${dependencies})
 
 

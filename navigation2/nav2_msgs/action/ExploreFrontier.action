@@ -2,7 +2,7 @@
 ---
 # result definition
 # the mapping process can sometime terminate with some frontiers uncleared
-bool all_frontiers_cleared
+geometry_msgs/PoseStamped end_pose
 ---
 # size of the costmap in cells
 uint32 map_size

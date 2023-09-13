@@ -1,0 +1,5 @@
+# service call to remove a node from lifecycle management
+
+string[] node_names
+---
+bool success
