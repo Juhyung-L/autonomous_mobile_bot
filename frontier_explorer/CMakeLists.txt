@@ -14,7 +14,6 @@ find_package(nav2_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(mobile_bot_msgs REQUIRED)
 find_package(nav2_util)
 find_package(rclcpp_lifecycle)
 find_package(lifecycle_msgs)
@@ -29,7 +28,6 @@ set(dependencies
   visualization_msgs
   tf2
   tf2_ros
-  mobile_bot_msgs
   nav2_util
   rclcpp_lifecycle
   lifecycle_msgs
@@ -87,7 +85,7 @@ ament_export_libraries(frontier_explorer_client) # enables frontier_explorer_LIB
 ament_export_dependencies(
   rclcpp
   rclcpp_action
-  mobile_bot_msgs
+  nav2_msgs
 )
 # prevents the need to include the dependencies of this package
 # in the other package that is using this shared library

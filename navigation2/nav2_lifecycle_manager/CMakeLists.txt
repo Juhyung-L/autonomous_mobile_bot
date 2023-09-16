@@ -16,7 +16,6 @@ find_package(std_srvs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(bondcpp REQUIRED)
 find_package(diagnostic_updater REQUIRED)
-find_package(mobile_bot_msgs REQUIRED)
 
 nav2_package()
 
@@ -45,7 +44,6 @@ set(dependencies
   tf2_geometry_msgs
   bondcpp
   diagnostic_updater
-  mobile_bot_msgs
 )
 
 ament_target_dependencies(${library_name}
