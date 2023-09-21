@@ -89,7 +89,7 @@ Slam::on_activate(const rclcpp_lifecycle::State & state)
   closure_assistant_->scan_publisher_->on_activate();
 
   // start the thread that publishes map->odom transform and the visualizations
-  continue_threads_ = true;
+  activated_ = true;
   threads_.push_back(std::make_unique<boost::thread>(
       boost::bind(&Slam::publishTransformLoop,
       this, transform_publish_period)));
@@ -107,7 +107,7 @@ Slam::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Deactivating slam...");
 
-  continue_threads_ = false;
+  activated_ = false;
   for (int i = 0; i != threads_.size(); i++) {
     threads_[i]->join(); // join() blocks until the threads have terminated
   }
@@ -151,6 +151,8 @@ Slam::on_cleanup(const rclcpp_lifecycle::State & state)
   laser_assistant_.reset();
   scan_holder_.reset();
   solver_.reset();
+
+  lasers_.clear();
   // every smart pointers that are resetted here are initialized in on_configure()
   // so that memory is saved and the node can be restarted
   return nav2_util::CallbackReturn::SUCCESS;
@@ -329,7 +331,7 @@ void Slam::publishTransformLoop(
   }
 
   rclcpp::Rate r(1.0 / transform_publish_period);
-  while (rclcpp::ok() && continue_threads_) {
+  while (rclcpp::ok() && activated_) {
     {
       boost::mutex::scoped_lock lock(map_to_odom_mutex_);
       rclcpp::Time scan_timestamp = scan_header.stamp;
@@ -364,7 +366,7 @@ void Slam::publishVisualizations()
 
   rclcpp::Rate r(1.0 / map_update_interval);
 
-  while (rclcpp::ok() && continue_threads_) {
+  while (rclcpp::ok() && activated_) {
     updateMap();
     if (!isPaused(VISUALIZING_GRAPH)) {
       boost::mutex::scoped_lock lock(smapper_mutex_);

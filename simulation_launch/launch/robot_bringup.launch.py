@@ -14,7 +14,7 @@ def generate_launch_description():
     rviz_config_file_path = os.path.join(pkg_share, 'rviz', 'urdf_config.rviz')
     ekf_config_file_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
-    world_file_path = os.path.join(pkg_share, 'worlds', 'instant_map.world')
+    world_file_path = os.path.join(pkg_share, 'worlds', 'house.world')
     robot_model_file_path = os.path.join(pkg_share, 'models', 'alphabot2', 'model.urdf')
 
     # launch configuration variables

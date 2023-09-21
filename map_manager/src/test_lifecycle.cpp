@@ -19,15 +19,24 @@ int main(int argc, char** argv)
 {   
     rclcpp::init(argc, argv);
     
-    auto logger = rclcpp::get_logger("main_app");
-
     auto node = std::make_shared<rclcpp::Node>("main_app");
+    auto logger = node->get_logger();
     auto lifecycle_client =
         std::make_shared<nav2_lifecycle_manager::LifecycleManagerClient>(
-            "lifecycle_manager_navigation", node);
+            "lifecycle_manager", node);
 
     auto handle_user_input = [&]()
     {
+        // add all necessary node for the nav2 stack to function
+        lifecycle_client->add_node({"controller_server",
+            "smoother_server",
+            "async_slam",
+            "planner_server",
+            "behavior_server",
+            "bt_navigator",
+            "waypoint_follower",
+            "velocity_smoother",});
+        
         while (rclcpp::ok())
         {
             RCLCPP_INFO(logger, "\n"

@@ -231,6 +231,9 @@ AmclNode::AmclNode(const rclcpp::NodeOptions & options)
   initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "initialpose", rclcpp::SystemDefaultsQoS(),
     std::bind(&AmclNode::initialPoseReceived, this, std::placeholders::_1));
+
+  get_parameter("global_frame_id", global_frame_id_);
+  global_frame_id_ = nav2_util::strip_leading_slash(global_frame_id_);
 }
 
 AmclNode::~AmclNode()
@@ -1050,7 +1053,6 @@ AmclNode::initParameters()
   get_parameter("beam_skip_error_threshold", beam_skip_error_threshold_);
   get_parameter("beam_skip_threshold", beam_skip_threshold_);
   get_parameter("do_beamskip", do_beamskip_);
-  get_parameter("global_frame_id", global_frame_id_);
   get_parameter("lambda_short", lambda_short_);
   get_parameter("laser_likelihood_max_dist", laser_likelihood_max_dist_);
   get_parameter("laser_max_range", laser_max_range_);
@@ -1091,7 +1093,6 @@ AmclNode::initParameters()
 
   odom_frame_id_ = nav2_util::strip_leading_slash(odom_frame_id_);
   base_frame_id_ = nav2_util::strip_leading_slash(base_frame_id_);
-  global_frame_id_ = nav2_util::strip_leading_slash(global_frame_id_);
 
   last_time_printed_msg_ = now();
 

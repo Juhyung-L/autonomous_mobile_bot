@@ -39,18 +39,20 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
 
+    # async_slam and amcl must be before planner_server
+    # because planner_server needs the map frame
     lifecycle_nodes = ['controller_server',
                        'smoother_server',
+                       'map_server',
+                       'async_slam',
+                       'amcl',
                        'planner_server',
                        'behavior_server',
                        'bt_navigator',
                        'waypoint_follower',
                        'velocity_smoother',
-                       'async_slam',
                        'frontier_explorer_server',
                        'map_saver_server',
-                       'map_server',
-                       'amcl'
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -228,7 +230,7 @@ def generate_launch_description():
             Node(
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
-                name='lifecycle_manager_navigation',
+                name='lifecycle_manager',
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart},

@@ -175,11 +175,14 @@ protected:
   std_msgs::msg::Header scan_header;
   int throttle_scans_, scan_queue_size_;
 
+  bool activated_; // boolean flag indicating if the slam node is active or not 
+  // used to prevent the publishTransformLoop and publishVisualizations threads from running
+  // when the node is not in the active state
+  
   double resolution_;
   double position_covariance_scale_;
   double yaw_covariance_scale_;
   bool first_measurement_, enable_interactive_mode_;
-  bool continue_threads_;
   double transform_publish_period;
   double tf_buffer_duration;
   double map_update_interval;

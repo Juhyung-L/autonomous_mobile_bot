@@ -197,10 +197,10 @@ LifecycleManager::addNodeCallback(
   managed_node_names_.clear();
   std::vector<std::string>::iterator it1 = managed_node_names_cpy.begin();
   std::vector<std::string>::iterator it2 = request->node_names.begin();
-
+  
+  uint8_t i = 0;
   while (it1 != managed_node_names_cpy.end() || it2 != request->node_names.end())
   {
-    uint8_t i = 0;
     if (it1 != managed_node_names_cpy.end() && *it1 == all_node_names_[i])
     {
       managed_node_names_.push_back(*it1);
@@ -208,6 +208,7 @@ LifecycleManager::addNodeCallback(
     }
     else if (it2 != request->node_names.end() && *it2 == all_node_names_[i])
     {
+      RCLCPP_INFO(get_logger(), "Added node [%s]", (*it2).c_str());
       managed_node_names_.push_back(*it2);
       ++it2;
     }
@@ -265,6 +266,7 @@ LifecycleManager::removeNodeCallback(
     // remove the node from node_names_ (std::vector) and node_map_ (std::map)
     managed_node_names_.erase(
       std::remove(managed_node_names_.begin(), managed_node_names_.end(), node_name), managed_node_names_.end());
+    RCLCPP_INFO(get_logger(), "Removed node [%s]", node_name.c_str());
   }
 
   response->success = true;

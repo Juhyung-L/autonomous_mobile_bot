@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD 17)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(nav2_map_server REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(nav2_lifecycle_manager REQUIRED)
@@ -22,6 +25,9 @@ find_package(frontier_explorer REQUIRED)
 
 set(dependencies
   rclcpp
+  rclcpp_action
+  ament_index_cpp
+  geometry_msgs
   nav2_map_server
   nav2_msgs
   nav2_lifecycle_manager
@@ -30,28 +36,20 @@ set(dependencies
 
 include_directories(
   include
-  ${nav2_lifecycle_manager_INCLUDE_DIRS}
-  ${frontier_explorer_INCLUDE_DIRS}
+  # ${nav2_lifecycle_manager_INCLUDE_DIRS}
+  # ${frontier_explorer_INCLUDE_DIRS}
 )
 
-add_executable(map_manager src/main.cpp)
-ament_target_dependencies(map_manager ${dependencies})
-target_link_libraries(map_manager 
+add_executable(main src/main.cpp)
+ament_target_dependencies(main ${dependencies})
+target_link_libraries(main 
   stdc++fs 
-  ${nav2_lifecycle_manager_LIBRARIES}
-  ${frontier_explorer_LIBRARIES}
+  # ${nav2_lifecycle_manager_LIBRARIES}
+  # ${frontier_explorer_LIBRARIES}
 ) # add filesystem to executable
 
 add_executable(test_lifecycle src/test_lifecycle.cpp)
-ament_target_dependencies(test_lifecycle
-  rclcpp
-  rclcpp_action
-  nav2_msgs
-  nav2_lifecycle_manager
-)
-target_link_libraries(test_lifecycle
-  ${nav2_lifecycle_manager_LIBRARIES}
-)
+ament_target_dependencies(test_lifecycle ${dependencies})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -66,7 +64,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS
-  map_manager
+  main
   test_lifecycle
   DESTINATION lib/${PROJECT_NAME}
 )
