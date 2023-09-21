@@ -45,31 +45,44 @@ int main(int argc, char** argv)
         node->create_client<rcl_interfaces::srv::SetParameters>(
             "/map_server/set_parameters");
 
-    auto start_mapping = [&]()
+    auto timeout = 20s;
+
+    auto start_mapping = [&](std::chrono::seconds input_timeout) -> bool
     {
         RCLCPP_INFO(logger, "Starting autonomous mapping...");
-        lifecycle_client->add_node({"async_slam", 
-            "frontier_explorer_server", 
-            "map_saver_server"});
-        lifecycle_client->startup();
-        while (lifecycle_client->is_active() != nav2_lifecycle_manager::SystemStatus::ACTIVE
-                && rclcpp::ok())
+        if (!lifecycle_client->add_node({"async_slam", 
+                "frontier_explorer_server", 
+                "map_saver_server"}, 
+                input_timeout))
         {
-            std::this_thread::sleep_for(100ms);
+            RCLCPP_ERROR(logger, "Add node service call failed.");
+            return false;;
         }
+        if (!lifecycle_client->startup(input_timeout))
+        {
+            RCLCPP_ERROR(logger, "Startup service call failed.");
+            return false;
+        }
+
         frontier_explorer_client->sendGoal(); // blocks until the ClientGoalHandle (GoalHandleExploreFrontier) future is set
+        return true;
     };
 
     auto event_loop = [&]()
     {
         // add all necessary node for the nav2 stack to function
-        lifecycle_client->add_node({"controller_server",
-            "smoother_server",
-            "planner_server",
-            "behavior_server",
-            "bt_navigator",
-            "waypoint_follower",
-            "velocity_smoother",});
+        if (!lifecycle_client->add_node({"controller_server",
+                "smoother_server",
+                "planner_server",
+                "behavior_server",
+                "bt_navigator",
+                "waypoint_follower",
+                "velocity_smoother",}, 
+                timeout))
+        {
+            RCLCPP_ERROR(logger, "Add node service call failed.");
+            return;
+        }
         
         // check if map is saved
         std::string package_path;
@@ -96,13 +109,13 @@ int main(int argc, char** argv)
         std::filesystem::path fs_map_file_path(map_file_path + "." + image_format);
         if (std::filesystem::exists(fs_map_file_path)) // map file exists
         {
-            RCLCPP_INFO(logger, "\n"
-                                "Map file detected on machine\n"
-                                "Press {L} to load the saved map file\n"
-                                "Press {R} to generate a new map file");
-
             while (rclcpp::ok())
             {
+                RCLCPP_INFO(logger, "\n"
+                    "Map file detected on machine\n"
+                    "Press {L} to load the saved map file\n"
+                    "Press {R} to generate a new map file");
+
                 char c = getchar();
                 if (c == 'l')
                 {
@@ -111,28 +124,45 @@ int main(int argc, char** argv)
                 }
                 else if (c== 'r')
                 {
-                    start_mapping();
-                    break;
+                    if (start_mapping(timeout))
+                    {
+                        break;
+                    }
+                    // error messages get printed by the start_mapping() function
+                    // no need to write them here
                 }
+                else
+                {
+                    RCLCPP_WARN(logger, "Invalid input.");
+                }
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
         else // map file doesn't exist
         {
-            RCLCPP_INFO(logger, "\n"
-                                "No map file detected on machine\n"
-                                "Press {R} to generate a map file");
-
             while (rclcpp::ok())
             {
+                RCLCPP_INFO(logger, "\n"
+                    "No map file detected on machine\n"
+                    "Press {R} to generate a map file");
+
                 char c = getchar();
                 if (c == 'r')
                 {
-                    start_mapping();
-                    break;
+                    if (start_mapping(timeout))
+                    {
+                        break;
+                    }
                 }
+                else
+                {
+                    RCLCPP_WARN(logger, "Invalid input.");
+                }
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
         auto explore_frontier_goal_handle_future = frontier_explorer_client->getGoalHandleFuture();
         if (explore_frontier_goal_handle_future.valid())
@@ -152,12 +182,25 @@ int main(int argc, char** argv)
                     char c = getchar();
                     if (c == 'p')
                     {
-                        lifecycle_client->pause();
+                        if (!lifecycle_client->pause(timeout))
+                        {
+                            RCLCPP_ERROR(logger, "Pause service call failed.");
+                        }
                     }
                     else if (c == 'q')
                     {
-                        lifecycle_client->shutdown();
-                        break;
+                        if (!lifecycle_client->shutdown(timeout))
+                        {
+                            RCLCPP_ERROR(logger, "Shutdown service call failed.");
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        RCLCPP_WARN(logger, "Invalid input.");
                     }
                 }
                 else if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::INACTIVE)
@@ -169,12 +212,25 @@ int main(int argc, char** argv)
                     char c = getchar();
                     if (c == 'r')
                     {
-                        lifecycle_client->resume();
+                        if (!lifecycle_client->resume(timeout))
+                        {
+                            RCLCPP_ERROR(logger, "Resume service call failed.");
+                        }
                     }
                     else if (c == 'q')
                     {
-                        lifecycle_client->shutdown();
-                        break;
+                        if (!lifecycle_client->shutdown(timeout))
+                        {
+                            RCLCPP_ERROR(logger, "Shutdown service call failed.");
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        RCLCPP_WARN(logger, "Invalid input.");
                     }
                 }
                 else if (lifecycle_status == nav2_lifecycle_manager::SystemStatus::TIMEOUT)
@@ -183,6 +239,7 @@ int main(int argc, char** argv)
                 }
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             if (explore_frontier_goal_handle_future.get()->get_status() == rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
             {
@@ -201,21 +258,44 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    RCLCPP_ERROR(logger, "Could not get robot end pose");
+                    RCLCPP_ERROR(logger, "Could not get robot end pose.");
                     return;
                 }
 
                 RCLCPP_INFO(logger, "Saving map...");
                 auto request = std::make_shared<nav2_msgs::srv::SaveMap::Request>();
-                request->free_thresh = 0.25;
-                request->occupied_thresh = 0.65;
+                request->free_thresh = 0.10;
+                request->occupied_thresh = 0.90;
                 request->map_url = map_file_path;
                 request->image_format = image_format;
                 request->map_mode = "trinary";
                 request->map_topic = "/global_costmap/costmap";
-                save_map_client->wait_for_service();
-                RCLCPP_INFO(logger, "Sending async request");
-                auto result = save_map_client->async_send_request(request);
+                if (save_map_client->wait_for_service(timeout))
+                {
+                    RCLCPP_INFO(logger, "Sending async request");
+                    auto result_future = save_map_client->async_send_request(request);
+                    if (result_future.wait_for(timeout) != std::future_status::ready)
+                    {
+                        RCLCPP_ERROR(logger, "Failed to save map.");
+                        return;
+                    }
+                }
+                
+                // load map from file
+                if (!lifecycle_client->reset(timeout))
+                {
+                    RCLCPP_ERROR(logger, "Reset service call failed.");
+                    return;
+                }
+                if (!lifecycle_client->remove_node({"async_slam", 
+                        "frontier_explorer_server", 
+                        "map_saver_server"},
+                        timeout))
+                {
+                    RCLCPP_ERROR(logger, "Remove node service call failed.");
+                    return;
+                }
+                
             }
             else
             {
@@ -224,13 +304,11 @@ int main(int argc, char** argv)
             }
         }
 
-        // load map from file
-        lifecycle_client->reset();
-        lifecycle_client->remove_node({"async_slam", 
-            "frontier_explorer_server", 
-            "map_saver_server"});
-
-        lifecycle_client->add_node({"map_server", "amcl"});
+        if (!lifecycle_client->add_node({"map_server", "amcl"}, timeout))
+        {
+            RCLCPP_ERROR(logger, "Add node service call failed.");
+            return;
+        }
         
         // set "yaml_filename" parameter of map_server
         RCLCPP_INFO(logger, "Setting yaml_filename parameter of map_server");
@@ -241,16 +319,45 @@ int main(int argc, char** argv)
         parameter.value.string_value = map_file_path + ".yaml";
         request->parameters.push_back(parameter);
 
-        RCLCPP_INFO(logger, "Waiting for service");
-        set_yaml_filename_parameter_client->wait_for_service();
+        if (!set_yaml_filename_parameter_client->wait_for_service(timeout))
+        {
+            RCLCPP_ERROR(logger, "Timed out waiting for set parameter service.");
+            return;
+        }
         auto set_yaml_filename_future = set_yaml_filename_parameter_client->async_send_request(request);
+        if (set_yaml_filename_future.wait_for(timeout) != std::future_status::ready)
+        {
+            RCLCPP_ERROR(logger,"Set parameter service failed.");
+            return;
+        }
         
-        // calling wait() when valid() returns false leads to undefined behavior
-        // so wait until valid is true
-        while (!set_yaml_filename_future.valid()) {std::this_thread::sleep_for(100ms);}
-        RCLCPP_INFO(logger, "Waiting for setting parameter to complete");
-        set_yaml_filename_future.wait();
-        lifecycle_client->startup();
+        if (!lifecycle_client->startup(timeout))
+        {
+            RCLCPP_ERROR(logger, "Startup service call failed.");
+            return;
+        }
+        while (rclcpp::ok())
+        {
+            RCLCPP_INFO(logger, "Press {Q} to quit.");
+            char c = getchar();
+            if (c == 'q')
+            {
+                if (!lifecycle_client->shutdown(timeout))
+                {
+                    RCLCPP_ERROR(logger, "Shutdown service call failed.");
+                }
+                else
+                {
+                   break; 
+                }
+            }
+            else
+            {
+                RCLCPP_WARN(logger, "Invalid input.");
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     };
     
     std::thread user_input_thread(event_loop);
