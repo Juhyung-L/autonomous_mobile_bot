@@ -49,6 +49,10 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
   registerRclPreshutdownCallback();
 
   all_node_names_ = get_parameter("all_node_names").as_string_array();
+  for (size_t i=0; i<all_node_names_.size(); ++i)
+  {
+    all_node_names_index_map_[all_node_names_[i]] = i;
+  }
   get_parameter("autostart", autostart_);
   double bond_timeout_s;
   get_parameter("bond_timeout", bond_timeout_s);
@@ -176,44 +180,43 @@ LifecycleManager::addNodeCallback(
     return;
   }
   std::stringstream duplicate_node_error_ss;
+  std::stringstream node_not_found_error_ss;
   for (std::string& node_name : request->node_names)
   {
     // found the requested node name from managed_node_names
     if (std::find(managed_node_names_.begin(), managed_node_names_.end(), node_name) != managed_node_names_.end())
     {
-      duplicate_node_error_ss << node_name << " ";
+      duplicate_node_error_ss << node_name << ", ";
+    }
+    // didn't find the requested node name from managed_node_names
+    if (std::find(all_node_names_.begin(), all_node_names_.end(), node_name) == all_node_names_.end())
+    {
+      node_not_found_error_ss << node_name << ", ";
     }
   }
   if (!duplicate_node_error_ss.str().empty())
   {
     RCLCPP_ERROR(get_logger(),
-      "Nodes [%s] are already added to lifecycle management", duplicate_node_error_ss.str().c_str());
+      "Nodes {%s} are already added to lifecycle management", duplicate_node_error_ss.str().c_str());
+  }
+  if (!node_not_found_error_ss.str().empty())
+  {
+    RCLCPP_ERROR(get_logger(),
+      "Nodes {%s} were not found in the list of valid nodes", node_not_found_error_ss.str().c_str());
+  }
+  if (!duplicate_node_error_ss.str().empty() || !node_not_found_error_ss.str().empty())
+  {
     response->success = false;
     return;
   }
 
-  // insert node names into managed_node_names_ while preserving the order from all_node_names
-  std::vector<std::string> managed_node_names_cpy(managed_node_names_);
-  managed_node_names_.clear();
-  std::vector<std::string>::iterator it1 = managed_node_names_cpy.begin();
-  std::vector<std::string>::iterator it2 = request->node_names.begin();
+  // append the nodes to the requested nodes to managed_node_names_
+  managed_node_names_.insert(managed_node_names_.end(), request->node_names.begin(), request->node_names.end());
   
-  uint8_t i = 0;
-  while (it1 != managed_node_names_cpy.end() || it2 != request->node_names.end())
-  {
-    if (it1 != managed_node_names_cpy.end() && *it1 == all_node_names_[i])
-    {
-      managed_node_names_.push_back(*it1);
-      ++it1;
-    }
-    else if (it2 != request->node_names.end() && *it2 == all_node_names_[i])
-    {
-      RCLCPP_INFO(get_logger(), "Added node [%s]", (*it2).c_str());
-      managed_node_names_.push_back(*it2);
-      ++it2;
-    }
-    ++i;
-  }
+  // and sort it based on the order of nodes in all_node_names_
+  std::sort(managed_node_names_.begin(), managed_node_names_.end(),
+    [&](const std::string& str1, const std::string& str2)
+    { return all_node_names_index_map_[str1] < all_node_names_index_map_[str2]; });
   response->success = true;
 }
 
@@ -237,40 +240,25 @@ LifecycleManager::removeNodeCallback(
     // could not find the requested node name from maanged_node_names
     if (std::find(managed_node_names_.begin(), managed_node_names_.end(), node_name) == managed_node_names_.end())
     {
-      invalid_node_error_ss << node_name << " ";
+      invalid_node_error_ss << node_name << ", ";
     }
   }
   if (!invalid_node_error_ss.str().empty())
   {
     RCLCPP_ERROR(get_logger(),
-      "Nodes [%s] are not lifecycle-managed and cannot be removed", invalid_node_error_ss.str().c_str());
+      "Could not find nodes {%s} from the list of currently managed nodes", invalid_node_error_ss.str().c_str());
     response->success = false;
     return;
   }
   
-  for (std::string& node_name : request->node_names)
-  {
-    // shutdown the node to be removed
-    try
-    {
-      changeStateForNode(node_name, Transition::TRANSITION_CLEANUP);
-      changeStateForNode(node_name, Transition::TRANSITION_UNCONFIGURED_SHUTDOWN);
-    }
-    catch (const std::runtime_error& e)
-    {
-      RCLCPP_ERROR(get_logger(),
-        "Failed to change state for node: %s. Exception: %s.", node_name.c_str(), e.what());
-      response->success = false;
-      return;
-    }
-    // remove the node from node_names_ (std::vector) and node_map_ (std::map)
-    managed_node_names_.erase(
-      std::remove(managed_node_names_.begin(), managed_node_names_.end(), node_name), managed_node_names_.end());
-    RCLCPP_INFO(get_logger(), "Removed node [%s]", node_name.c_str());
-  }
-
+  // remove the nodes from managed_node_names_
+  managed_node_names_.erase(std::remove_if(
+        managed_node_names_.begin(), managed_node_names_.end(),
+        [&](const std::string& str) 
+        {return std::find(request->node_names.begin(), request->node_names.end(), str) != request->node_names.end();}),
+        managed_node_names_.end()
+  );
   response->success = true;
-  return;
 }
 
 void

@@ -242,6 +242,7 @@ protected:
 
   // The names of the nodes to be managed, in the order of desired bring-up
   std::vector<std::string> all_node_names_;
+  std::unordered_map<std::string, int> all_node_names_index_map_;
   std::vector<std::string> managed_node_names_;
 
   // Whether to automatically start up the system
