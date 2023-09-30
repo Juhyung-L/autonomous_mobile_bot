@@ -41,18 +41,27 @@ def generate_launch_description():
 
     # async_slam and amcl must be before planner_server
     # because planner_server needs the map frame
-    lifecycle_nodes = ['controller_server',
-                       'smoother_server',
-                       'map_server',
-                       'async_slam',
-                       'amcl',
-                       'planner_server',
-                       'behavior_server',
-                       'bt_navigator',
-                       'waypoint_follower',
-                       'velocity_smoother',
-                       'frontier_explorer_server',
-                       'map_saver_server',
+    all_nodes = ['controller_server',
+        'smoother_server',
+        'map_server',
+        'async_slam',
+        'amcl',
+        'planner_server',
+        'behavior_server',
+        'bt_navigator',
+        'waypoint_follower',
+        'velocity_smoother',
+        'frontier_explorer_server',
+        'map_saver_server',
+    ]
+
+    currently_managed_nodes = ['controller_server',
+        'smoother_server',
+        'planner_server',
+        'behavior_server',
+        'bt_navigator',
+        'waypoint_follower',
+        'velocity_smoother'
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -234,7 +243,9 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart},
-                            {'all_node_names': lifecycle_nodes}]
+                            {'all_node_names': all_nodes},
+                            {'managed_node_names': currently_managed_nodes}
+                ]
             ),
         ]
     )

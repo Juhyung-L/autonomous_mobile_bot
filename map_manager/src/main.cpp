@@ -69,21 +69,7 @@ int main(int argc, char** argv)
     };
 
     auto event_loop = [&]()
-    {
-        // add all necessary node for the nav2 stack to function
-        if (!lifecycle_client->add_node({"controller_server",
-                "smoother_server",
-                "planner_server",
-                "behavior_server",
-                "bt_navigator",
-                "waypoint_follower",
-                "velocity_smoother",}, 
-                timeout))
-        {
-            RCLCPP_ERROR(logger, "Add node service call failed.");
-            return;
-        }
-        
+    {   
         // check if map is saved
         std::string package_path;
         std::string map_folder_path;
@@ -177,25 +163,13 @@ int main(int argc, char** argv)
                 {
                     RCLCPP_INFO(logger, "\n"
                                         "Mapping in progress...\n"
-                                        "Press {P} to pause\n"
-                                        "Press {Q} to quit");
+                                        "Press {P} to pause");
                     char c = getchar();
                     if (c == 'p')
                     {
                         if (!lifecycle_client->pause(timeout))
                         {
                             RCLCPP_ERROR(logger, "Pause service call failed.");
-                        }
-                    }
-                    else if (c == 'q')
-                    {
-                        if (!lifecycle_client->shutdown(timeout))
-                        {
-                            RCLCPP_ERROR(logger, "Shutdown service call failed.");
-                        }
-                        else
-                        {
-                            break;
                         }
                     }
                     else
@@ -207,25 +181,13 @@ int main(int argc, char** argv)
                 {
                     RCLCPP_INFO(logger, "\n"
                                         "Mapping in paused\n"
-                                        "Press {R} to resume\n"
-                                        "Press {Q} to quit");
+                                        "Press {R} to resume");
                     char c = getchar();
                     if (c == 'r')
                     {
                         if (!lifecycle_client->resume(timeout))
                         {
                             RCLCPP_ERROR(logger, "Resume service call failed.");
-                        }
-                    }
-                    else if (c == 'q')
-                    {
-                        if (!lifecycle_client->shutdown(timeout))
-                        {
-                            RCLCPP_ERROR(logger, "Shutdown service call failed.");
-                        }
-                        else
-                        {
-                            break;
                         }
                     }
                     else

@@ -41,6 +41,7 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
   // The list of names is parameterized, allowing this module to be used with a different set
   // of nodes
   declare_parameter("all_node_names", rclcpp::PARAMETER_STRING_ARRAY);
+  declare_parameter("managed_node_names", rclcpp::PARAMETER_STRING_ARRAY);
   declare_parameter("autostart", rclcpp::ParameterValue(false));
   declare_parameter("bond_timeout", 4.0);
   declare_parameter("bond_respawn_max_duration", 10.0);
@@ -53,6 +54,7 @@ LifecycleManager::LifecycleManager(const rclcpp::NodeOptions & options)
   {
     all_node_names_index_map_[all_node_names_[i]] = i;
   }
+  managed_node_names_ = get_parameter("managed_node_names").as_string_array();
   get_parameter("autostart", autostart_);
   double bond_timeout_s;
   get_parameter("bond_timeout", bond_timeout_s);
