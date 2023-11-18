@@ -11,7 +11,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     pkg_share = get_package_share_directory('simulation_launch')
     
-    rviz_config_file_path = os.path.join(pkg_share, 'rviz', 'urdf_config.rviz')
+    rviz_config_file_path = os.path.join(pkg_share, 'config', 'urdf_config.rviz')
     ekf_config_file_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
     world_file_path = os.path.join(pkg_share, 'worlds', 'instant_map.world')

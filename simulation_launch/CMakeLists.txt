@@ -21,8 +21,7 @@ if(BUILD_TESTING)
 endif()
 
 install(DIRECTORY 
-  launch 
-  rviz 
+  launch
   models 
   config 
   worlds
