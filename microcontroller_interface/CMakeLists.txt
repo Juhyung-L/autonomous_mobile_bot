@@ -12,6 +12,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(PkgConfig)
 pkg_check_modules(SERIAL libserial)
 
@@ -19,16 +20,24 @@ include_directories(
   /include
 )
 
-set(dependencies
+set(odom_imu_node_dependencies
   rclcpp
   nav_msgs
   sensor_msgs
 )
 
+set(keyboard_teleop_dependencies
+  rclcpp
+  geometry_msgs
+)
+
 add_executable(odom_imu_node src/odom_imu_node.cpp)
-ament_target_dependencies(odom_imu_node ${dependencies})
+ament_target_dependencies(odom_imu_node ${odom_imu_node_dependencies})
 target_link_libraries(odom_imu_node ${SERIAL_LDFLAGS})
 target_link_directories(odom_imu_node PRIVATE ${SERIAL_INCLUDE_DIRS})
+
+add_executable(keyboard_teleop src/keyboard_teleop.cpp)
+ament_target_dependencies(keyboard_teleop ${keyboard_teleop_dependencies})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -44,6 +53,7 @@ endif()
 
 INSTALL(TARGETS
   odom_imu_node
+  keyboard_teleop
   DESTINATION lib/${PROJECT_NAME}
 )
 
