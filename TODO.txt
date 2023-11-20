@@ -1,15 +1,27 @@
-1. add service to remove a node in lifecyce_manager
+packages to keep:
+nav2_smoother
+    nav2_util
+    nav2_msgs
+    nav2_core
 
-Possible improvements
-1. compile everything into rclcpp components in addition to executables
-2. 
+nav2_map_server
 
+amcl
 
-implement error state for
-- frontier_explorer
-- slam
+nav2_planner
+    nav2_common
+    nav2_costmap_2d
+        nav2_voxel_grid
 
-Respawning a node?
-wth is heartbeat for lifecycle node
+nav2_controller
 
-add all the packages that simulation_launch starts into <exec_depend>
+nav2_behaviors
+    nav2_behavior_tree
+
+nav2_bt_navigator
+
+nav2_waypoint_follower
+
+nav2_velocity_smoother
+
+nav2_lifecycle_manager
