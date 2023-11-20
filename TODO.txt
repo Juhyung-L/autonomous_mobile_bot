@@ -3,6 +3,8 @@ nav2_smoother
     nav2_util
     nav2_msgs
     nav2_core
+    nav_2d_utils
+    nav_2d_msgs
 
 nav2_map_server
 
