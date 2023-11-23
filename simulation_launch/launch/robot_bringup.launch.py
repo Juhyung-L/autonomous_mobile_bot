@@ -14,7 +14,7 @@ def generate_launch_description():
     rviz_config_file_path = os.path.join(pkg_share, 'config', 'urdf_config.rviz')
     ekf_config_file_path = os.path.join(pkg_share, 'config', 'ekf.yaml')
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
-    world_file_path = os.path.join(pkg_share, 'worlds', 'instant_map.world')
+    world_file_path = os.path.join(pkg_share, 'worlds', 'house.world')
     robot_model_file_path = os.path.join(pkg_share, 'models', 'alphabot2', 'model.urdf')
 
     # launch configuration variables
@@ -85,12 +85,12 @@ def generate_launch_description():
         parameters=[ekf_config_file_path, 
                     {'use_sim_time': use_sim_time}]
     )
-    keyboard_teleop_node = Node(
-        package='keyboard_teleop',
-        executable='keyboard_teleop',
-        name='keyboard_teleop',
-        output='screen'
-    )
+    # keyboard_teleop_node = Node(
+    #     package='keyboard_teleop',
+    #     executable='keyboard_teleop',
+    #     name='keyboard_teleop',
+    #     output='screen'
+    # )
 
     # launch nav2
     nav2_launch = IncludeLaunchDescription(
@@ -129,7 +129,7 @@ def generate_launch_description():
         robot_world_launch,
         robot_localization_node,
         rviz_node,
-        keyboard_teleop_node,
+        # keyboard_teleop_node,
 
         nav2_launch
     ])

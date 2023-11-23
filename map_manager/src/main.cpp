@@ -261,7 +261,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                RCLCPP_ERROR(logger, "Mapping did not suceed.");
+                RCLCPP_ERROR(logger, "Mapping did not succeed.");
                 return;
             }
         }
