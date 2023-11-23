@@ -15,12 +15,11 @@ def generate_launch_description():
         name='odom_imu_node',
         output='screen'
     )
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_config_file],
+    pid_motor_control = Node(
+        package='microcontroller_interface',
+        executable='pid_motor_control',
+        name='pid_motor_control',
+        output='screen'
     )
     robot_localization_node = Node(
         package='robot_localization',
@@ -32,6 +31,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         odom_imu_node,
-        rviz_node,
+        pid_motor_control,
         robot_localization_node
     ])

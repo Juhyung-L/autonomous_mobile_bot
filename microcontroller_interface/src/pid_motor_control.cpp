@@ -98,7 +98,7 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
 
     // convert robot velocity to individual wheel velocities
     double target_wheel_vel_r = ((msg.linear.x * 2 / wheel_radius) + (msg.angular.z * wheel_separation / wheel_radius)) / 2;
-    double target_wheel_vel_l = (msg.linear.x * 2 / wheel_radius) - wheel_vel_r;
+    double target_wheel_vel_l = (msg.linear.x * 2 / wheel_radius) - target_wheel_vel_r;
 
     double gain_r = computeGain(dt, target_wheel_vel_r - wheel_vel_r, e_int_r, prev_e_r);
     double gain_l = computeGain(dt, target_wheel_vel_l - wheel_vel_l, e_int_l, prev_e_l);
@@ -108,9 +108,18 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
     {
         gain_r = 100.0;
     }
+    else if (gain_r < -100.0)
+    {
+        gain_r = -100.0;
+    }
+
     if (gain_l > 100.0)
     {
         gain_l = 100.0;
+    }
+    else if (gain_l < -100.0)
+    {
+        gain_l = -100.0;
     }
 
     // set the direction and PWM duty cycle
@@ -135,8 +144,8 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
         lgGpioWrite(h, AIN2, 1);
     }
 
-    lgTxPwm(h, ENB, gain_r, 0, 0);
-    lgTxPwm(h, ENA, gain_l, 0, 0);
+    lgTxPwm(h, ENB, PWM_FREQ, abs(gain_r), 0, 0);
+    lgTxPwm(h, ENA, PWM_FREQ, abs(gain_l), 0, 0);
 }
 
 int main(int argc, char* argv[])
@@ -173,7 +182,7 @@ int main(int argc, char* argv[])
     rclcpp::SubscriptionOptions wheel_vels_listener_options;
     wheel_vels_listener_options.callback_group = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     auto wheel_vels_listener = node->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "wheel_velocities", rclcpp::SensorDataQoS(), std::bind(&wheelVelsCallback, _1), wheel_vels_listener_options
+        "wheel_vels", rclcpp::SensorDataQoS(), std::bind(&wheelVelsCallback, _1), wheel_vels_listener_options
     );
 
     rclcpp::SubscriptionOptions cmd_vel_listener_options;

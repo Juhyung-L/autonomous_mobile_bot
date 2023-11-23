@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("odom_imu_node");
 
-    node->declare_parameter<double>("wheel_radis", 0.022);
+    node->declare_parameter<double>("wheel_radius", 0.022);
     node->declare_parameter<double>("wheel_separation", 0.097);
 
     wheel_radius = node->get_parameter("wheel_radius").as_double();
@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
     auto odom_pub = node->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
     auto imu_pub = node->create_publisher<sensor_msgs::msg::Imu>("imu", 10);
-    auto ang_vel_pub = node->create_publisher<std_msgs::msg::Float64MultiArray>("wheel_velocities", 10);
+    auto ang_vel_pub = node->create_publisher<std_msgs::msg::Float64MultiArray>("wheel_vels", 10);
 
     SerialPort serial_port;
 

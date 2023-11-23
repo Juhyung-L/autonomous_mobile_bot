@@ -60,7 +60,7 @@ endif()
 
 INSTALL(TARGETS
   odom_imu_node
-  keyboard_teleop
+  pid_motor_control
   DESTINATION lib/${PROJECT_NAME}
 )
 
