@@ -3,11 +3,32 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('microcontroller_interface')
     ekf_config_file = os.path.join(pkg_share, 'config', 'ekf.yaml')
-    rviz_config_file= os.path.join(pkg_share, 'config', 'rviz_config.rviz')
+    
+    kp = LaunchConfiguration('kp')
+    kd = LaunchConfiguration('kd')
+    ki = LaunchConfiguration('ki')
+
+    declare_kp = DeclareLaunchArgument(
+        name='kp',
+        default_value='0.01',
+        description='Parameter for proportional controller'
+    )
+    declare_kd = DeclareLaunchArgument(
+        name='kd',
+        default_value='0.01',
+        description='Parameter for derivative controller'
+    )
+    declare_ki = DeclareLaunchArgument(
+        name='ki',
+        default_value='0.01',
+        description='Parameter for integral controller'
+    )
 
     odom_imu_node = Node(
         package='microcontroller_interface',
@@ -19,7 +40,12 @@ def generate_launch_description():
         package='microcontroller_interface',
         executable='pid_motor_control',
         name='pid_motor_control',
-        output='screen'
+        output='screen',
+        parameters=[
+            {'kp': kp},
+            {'kd': kd},
+            {'ki': ki}
+        ]
     )
     robot_localization_node = Node(
         package='robot_localization',
@@ -30,6 +56,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        declare_kp,
+        declare_kd,
+        declare_ki,
+
         odom_imu_node,
         pid_motor_control,
         robot_localization_node
