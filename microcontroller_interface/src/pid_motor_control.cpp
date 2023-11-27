@@ -157,13 +157,8 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
         lgGpioWrite(h, AIN2, 1);
     }
 
-<<<<<<< HEAD
-    lgTxPwm(h, ENB, PWM_FREQ, gain_r, 0, 0);
-    lgTxPwm(h, ENA, PWM_FREQ, gain_l, 0, 0);
-=======
     lgTxPwm(h, ENB, PWM_FREQ, abs(pwm_r), 0, 0);
     lgTxPwm(h, ENA, PWM_FREQ, abs(pwm_l), 0, 0);
->>>>>>> e1a78f4a02c9212318373434d0dbb62b8d3a18c8
 }
 
 int main(int argc, char* argv[])
