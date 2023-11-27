@@ -10,7 +10,7 @@ from launch.actions import DeclareLaunchArgument
 def generate_launch_description():
     pkg_share = get_package_share_directory('all_launch')
     rplidar_pkg_share = get_package_share_directory('rplidar_ros')
-    # microcont_pkg_share = get_package_share_directory('microcontroller_interface')
+    microcont_pkg_share = get_package_share_directory('microcontroller_interface')
 
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
     
@@ -59,9 +59,9 @@ def generate_launch_description():
     )
 
     # launch odometry and motor control
-    # real_odom_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(os.path.join(microcont_pkg_share, 'launch', 'odom_and_motor_control.launch.py'))
-    # )
+    real_odom_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(microcont_pkg_share, 'launch', 'odom_and_motor_control.launch.py'))
+    )
 
     return LaunchDescription([
         delcare_use_sim_time,
@@ -71,5 +71,5 @@ def generate_launch_description():
 
         nav2_launch,
         rplidar_launch,
-        # real_odom_launch
+        real_odom_launch
     ])

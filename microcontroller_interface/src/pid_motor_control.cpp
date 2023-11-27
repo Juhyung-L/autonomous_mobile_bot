@@ -1,6 +1,7 @@
 #include <memory>
 #include <chrono>
 #include <lgpio.h>
+#include <iostream>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
@@ -38,12 +39,15 @@ volatile double wheel_vel_l = 0;
 // discrete integration term for PID
 double e_int_r = 0;
 double e_int_l = 0;
- // previous error needed to calculate de/dt for PID
+// previous error needed to calculate de/dt for PID
 double prev_e_r = 0;
 double prev_e_l = 0;
 // PID parameters
 double kp, kd, ki;
 double max_duration; // maximum duration between curr_time and prev_time allowed for PID
+// pwm values
+double pwm_r = 0;
+double pwm_l = 0;
 
 int h; // handle for lgpio library
 
@@ -86,35 +90,53 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
 {
     auto curr_time = std::chrono::high_resolution_clock::now();
     double dt = std::chrono::duration_cast<std::chrono::duration<double>>(curr_time - prev_time).count();
-    if (dt < max_duration)
+    prev_time = curr_time;
+    if (dt > max_duration)
     {
         e_int_r = 0;
         e_int_l = 0;
         prev_e_r = 0;
         prev_e_l = 0;
-        prev_time = curr_time;
         return;
     }
 
     // convert robot velocity to individual wheel velocities
     double target_wheel_vel_r = ((msg.linear.x * 2 / wheel_radius) + (msg.angular.z * wheel_separation / wheel_radius)) / 2;
-    double target_wheel_vel_l = (msg.linear.x * 2 / wheel_radius) - wheel_vel_r;
+    double target_wheel_vel_l = (msg.linear.x * 2 / wheel_radius) - target_wheel_vel_r;
 
-    double gain_r = computeGain(dt, target_wheel_vel_r - wheel_vel_r, e_int_r, prev_e_r);
-    double gain_l = computeGain(dt, target_wheel_vel_l - wheel_vel_l, e_int_l, prev_e_l);
+    double e_r = target_wheel_vel_r - wheel_vel_r;
+    double e_l = target_wheel_vel_l - wheel_vel_l;
+
+    pwm_r += computeGain(dt, e_r, e_int_r, prev_e_r);
+    pwm_l += computeGain(dt, e_l, e_int_l, prev_e_l);
     
     // cap to 100 because max PWM duty cycle is 100%
-    if (gain_r > 100.0)
+    if (pwm_r > 100.0)
     {
-        gain_r = 100.0;
+        pwm_r = 100.0;
     }
-    if (gain_l > 100.0)
+    else if (pwm_r < -100.0)
     {
-        gain_l = 100.0;
+        pwm_r = -100.0;
     }
 
+    if (pwm_l > 100.0)
+    {
+        pwm_l = 100.0;
+    }
+    else if (pwm_l < -100.0)
+    {
+        pwm_l = -100.0;
+    }
+    
+    std::cerr << "pwm: " << pwm_r << ", " << pwm_l 
+              << " dt: " << dt
+              << " e: " << e_r << ", " << e_l 
+              << " target_wheel_vels: " << target_wheel_vel_r << ", " << target_wheel_vel_l
+              << " wheel_vels: " << wheel_vel_r << ", " << wheel_vel_l << std::endl;
+    
     // set the direction and PWM duty cycle
-    if (gain_r < 0)
+    if (pwm_r < 0)
     {
         lgGpioWrite(h, BIN1, 1);
         lgGpioWrite(h, BIN2, 0);
@@ -124,7 +146,7 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
         lgGpioWrite(h, BIN1, 0);
         lgGpioWrite(h, BIN2, 1);
     }
-    if (gain_l < 0)
+    if (pwm_l < 0)
     {
         lgGpioWrite(h, AIN1, 1);
         lgGpioWrite(h, AIN2, 0);
@@ -135,8 +157,13 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
         lgGpioWrite(h, AIN2, 1);
     }
 
+<<<<<<< HEAD
     lgTxPwm(h, ENB, PWM_FREQ, gain_r, 0, 0);
     lgTxPwm(h, ENA, PWM_FREQ, gain_l, 0, 0);
+=======
+    lgTxPwm(h, ENB, PWM_FREQ, abs(pwm_r), 0, 0);
+    lgTxPwm(h, ENA, PWM_FREQ, abs(pwm_l), 0, 0);
+>>>>>>> e1a78f4a02c9212318373434d0dbb62b8d3a18c8
 }
 
 int main(int argc, char* argv[])
@@ -173,7 +200,7 @@ int main(int argc, char* argv[])
     rclcpp::SubscriptionOptions wheel_vels_listener_options;
     wheel_vels_listener_options.callback_group = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     auto wheel_vels_listener = node->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "wheel_velocities", rclcpp::SensorDataQoS(), std::bind(&wheelVelsCallback, _1), wheel_vels_listener_options
+        "wheel_vels", rclcpp::SensorDataQoS(), std::bind(&wheelVelsCallback, _1), wheel_vels_listener_options
     );
 
     rclcpp::SubscriptionOptions cmd_vel_listener_options;
