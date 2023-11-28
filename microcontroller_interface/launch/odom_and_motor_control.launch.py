@@ -10,10 +10,16 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('microcontroller_interface')
     ekf_config_file = os.path.join(pkg_share, 'config', 'ekf.yaml')
 
+    serial_port = LaunchConfiguration('serial_port', default='/dev/ttyUSB0')
     kp = LaunchConfiguration('kp', default='0.1')
     kd = LaunchConfiguration('kd', default='0.0')
     ki = LaunchConfiguration('ki', default='0.0')
-
+    
+    declare_serial_port = DeclareLaunchArgument(
+        name='serial_port',
+        default_value=serial_port,
+        description='Specifying usb port to connected Arduino'
+    )
     declare_kp = DeclareLaunchArgument(
         name='kp',
         default_value=kp,
@@ -34,7 +40,10 @@ def generate_launch_description():
         package='microcontroller_interface',
         executable='odom_imu_node',
         name='odom_imu_node',
-        output='screen'
+        output='screen',
+        parameters=[
+            {'serial_port': serial_port}
+        ]
     )
     robot_localization_node = Node(
         package='robot_localization',
@@ -44,13 +53,19 @@ def generate_launch_description():
         parameters=[ekf_config_file]
     )
     motor_control_node = Node(
-        package='microcontroller_interace',
+        package='microcontroller_interface',
         executable='pid_motor_control',
         name='motor_control_node',
-        output='screen'
+        output='screen',
+        parameters=[
+            {'kp': kp},
+            {'kd': kd},
+            {'ki': ki}
+        ]
     )
 
     return LaunchDescription([
+        declare_serial_port,
         declare_kp,
         declare_kd,
         declare_ki,

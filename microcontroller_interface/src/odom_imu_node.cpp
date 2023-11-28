@@ -16,18 +16,20 @@ using namespace LibSerial;
 
 int main(int argc, char* argv[]) 
 {
-    constexpr const char* const SERIAL_PORT_1 = "/dev/ttyUSB0";
+    std::string serial_port_path;
     double wheel_radius, wheel_separation;
 
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("odom_imu_node");
-
+    
+    node->declare_parameter<std::string>("serial_port", "ttyUSB0");
     node->declare_parameter<double>("wheel_radius", 0.022);
     node->declare_parameter<double>("wheel_separation", 0.097);
-
+    
+    serial_port_path = node->get_parameter("serial_port").as_string();
     wheel_radius = node->get_parameter("wheel_radius").as_double();
     wheel_separation = node->get_parameter("wheel_separation").as_double();
-
+    
     double wheel_circumference = 2.0 * M_PI * wheel_radius;
 
     auto odom_pub = node->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
@@ -38,7 +40,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        serial_port.Open(SERIAL_PORT_1);
+        serial_port.Open(serial_port_path.c_str());
     } 
     catch (const OpenFailed&) 
     {

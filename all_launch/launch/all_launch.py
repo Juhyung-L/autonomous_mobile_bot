@@ -17,8 +17,9 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     autostart = LaunchConfiguration('autostart')
-    serial_port = LaunchConfiguration('serial_port', default='/dev/ttyUSB0')
-
+    serial_port_lidar = LaunchConfiguration('serial_port_lidar', default='/dev/ttyUSB0')
+    serial_port_arduino = LaunchConfiguration('serial_port_arduino', default='/dev/ttyUSB1') 
+    
     delcare_use_sim_time = DeclareLaunchArgument(
         name='use_sim_time',
         default_value='false',
@@ -34,10 +35,15 @@ def generate_launch_description():
         default_value='false',
         description='Automatically startup the nav2 stack'
     )
-    declare_serial_port = DeclareLaunchArgument(
-        name='serial_port',
-        default_value=serial_port,
+    declare_serial_port_lidar = DeclareLaunchArgument(
+        name='serial_port_lidar',
+        default_value=serial_port_lidar,
         description='Specifying usb port to connected lidar'
+    )
+    declare_serial_port_arduino = DeclareLaunchArgument(
+        name='serial_port_arduino',
+        default_value=serial_port_arduino,
+        description='Specifying usb port to connected arduino'
     )
 
     # launch nav2
@@ -54,20 +60,24 @@ def generate_launch_description():
     rplidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(rplidar_pkg_share, 'launch', 'rplidar_a1_launch.py')),
         launch_arguments={
-            'serial_port': serial_port
+            'serial_port': serial_port_lidar
         }.items()
     )
 
     # launch odometry and motor control
     real_odom_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(microcont_pkg_share, 'launch', 'odom_and_motor_control.launch.py'))
+        PythonLaunchDescriptionSource(os.path.join(microcont_pkg_share, 'launch', 'odom_and_motor_control.launch.py')),
+        launch_arguments={
+            'serial_port': serial_port_arduino
+        }.items()
     )
 
     return LaunchDescription([
         delcare_use_sim_time,
         declare_params_file,
         declare_autostart,
-        declare_serial_port,
+        declare_serial_port_lidar,
+        declare_serial_port_arduino,
 
         nav2_launch,
         rplidar_launch,

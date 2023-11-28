@@ -29,7 +29,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     # Get the launch directory
-    pkg_share = get_package_share_directory('simulation_launch')
+    pkg_share = get_package_share_directory('all_launch')
     slam_dir = get_package_share_directory('slam')
 
     namespace = LaunchConfiguration('namespace')
