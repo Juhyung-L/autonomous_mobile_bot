@@ -74,26 +74,48 @@ int main(int argc, char* argv[])
     double dr;
     double d_yaw;
     double yaw = 0;
+
+    std::stringstream ss;
+    std::vector<std::string> tokens;
+    std::string token;
+
     while (rclcpp::ok()) 
     {
         try 
         {
             serial_port.ReadLine(line, '\n', timeout_ms); // read until the '\n' character
-            std::stringstream ss(line);
-            
-            // print the line if one of the tokens is not a number
-            if (!(ss >> imu.orientation.x &&
-                  ss >> imu.orientation.y &&
-                  ss >> imu.orientation.z &&
-                  ss >> imu.orientation.w &&
-                  ss >> num_rev_r &&
-                  ss >> num_rev_l &&
-                  ss >> ang_vel_r &&
-                  ss >> ang_vel_l))
+            ss.str(line);
+
+            while (std::getline(ss, token, ','))
             {
-                std::cout << line;
+                tokens.push_back(token);
+            }
+
+            if (tokens.size() == 1)
+            {
+                std::cout << tokens[0] << std::endl;
                 continue;
             }
+
+            if (tokens.size() == 8) // both imu and encoder data
+            {
+                imu.orientation.x = std::stod(tokens[0]);
+                imu.orientation.y = std::stod(tokens[1]);
+                imu.orientation.z = std::stod(tokens[2]);
+                imu.orientation.w = std::stod(tokens[3]);
+                num_rev_r = std::stod(tokens[4]);
+                num_rev_l = std::stod(tokens[5]);
+                ang_vel_r = std::stod(tokens[6]);
+                ang_vel_l = std::stod(tokens[7]);
+            }
+            else if (tokens.size() == 4) // only encoder data
+            {
+                num_rev_r = std::stod(tokens[0]);
+                num_rev_l = std::stod(tokens[1]);
+                ang_vel_r = std::stod(tokens[2]);
+                ang_vel_l = std::stod(tokens[3]);
+            }
+            tokens.clear();
             
             // publish the wheel angular velocities
             ang_vels.data.clear();
@@ -108,12 +130,9 @@ int main(int argc, char* argv[])
             d_yaw = (dr - dl) / wheel_separation;
             
             odom.pose.pose.position.x += d * cos(yaw + (d_yaw / 2));
-            odom.pose.pose.position.y += d * sin(yaw + (d_yaw / 2));
+            odom.pose.pose.position.y -= d * sin(yaw + (d_yaw / 2));
             
             yaw += d_yaw;
-
-            odom.pose.pose.orientation.z *= sin(d_yaw / 2);
-            odom.pose.pose.orientation.w *= cos(d_yaw / 2);
 
             odom.header.stamp = node->now();
             imu.header.stamp = node->now();

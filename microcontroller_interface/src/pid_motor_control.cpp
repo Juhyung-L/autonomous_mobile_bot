@@ -129,12 +129,6 @@ void cmdVelCallback(const geometry_msgs::msg::Twist& msg) // PID control happens
         pwm_l = -100.0;
     }
     
-    std::cerr << "pwm: " << pwm_r << ", " << pwm_l 
-              << " dt: " << dt
-              << " e: " << e_r << ", " << e_l 
-              << " target_wheel_vels: " << target_wheel_vel_r << ", " << target_wheel_vel_l
-              << " wheel_vels: " << wheel_vel_r << ", " << wheel_vel_l << std::endl;
-    
     // set the direction and PWM duty cycle
     if (pwm_r < 0)
     {
