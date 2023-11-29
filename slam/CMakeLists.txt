@@ -26,7 +26,6 @@ find_package(std_srvs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(interactive_markers REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Test Concurrent)
 find_package(nav2_util REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
@@ -52,7 +51,6 @@ set(dependencies
   std_srvs
   builtin_interfaces
   interactive_markers
-  Qt5
   nav2_util
   rclcpp_lifecycle
   lifecycle_msgs
