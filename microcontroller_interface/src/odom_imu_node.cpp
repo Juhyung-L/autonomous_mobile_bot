@@ -16,20 +16,23 @@ using namespace LibSerial;
 
 int main(int argc, char* argv[]) 
 {
-    std::string serial_port_path;
-    double wheel_radius, wheel_separation;
-
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("odom_imu_node");
     
     node->declare_parameter<std::string>("serial_port", "ttyUSB0");
     node->declare_parameter<double>("wheel_radius", 0.022);
     node->declare_parameter<double>("wheel_separation", 0.097);
+    node->declare_parameter<std::string>("odom_header_frame", "odom");
+    node->declare_parameter<std::string>("odom_child_frame", "base_footprint");
+    node->declare_parameter<std::string>("imu_header_frame", "base_footprint");
     
-    serial_port_path = node->get_parameter("serial_port").as_string();
-    wheel_radius = node->get_parameter("wheel_radius").as_double();
-    wheel_separation = node->get_parameter("wheel_separation").as_double();
-    
+    std::string serial_port_path = node->get_parameter("serial_port").as_string();
+    double wheel_radius = node->get_parameter("wheel_radius").as_double();
+    double wheel_separation = node->get_parameter("wheel_separation").as_double();
+    std::string odom_header_frame = node->get_parameter("odom_header_frame").as_string();
+    std::string odom_child_frame = node->get_parameter("odom_child_frame").as_string();
+    std::string imu_header_frame = node->get_parameter("imu_header_frame").as_string();
+
     double wheel_circumference = 2.0 * M_PI * wheel_radius;
 
     auto odom_pub = node->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
@@ -61,9 +64,9 @@ int main(int argc, char* argv[])
     sensor_msgs::msg::Imu imu;
     std_msgs::msg::Float64MultiArray ang_vels;
 
-    odom.header.frame_id = "odom";
-    odom.child_frame_id = "base_footprint";
-    imu.header.frame_id = "base_footprint";
+    odom.header.frame_id = odom_header_frame;
+    odom.child_frame_id = odom_child_frame;
+    imu.header.frame_id = imu_header_frame;
 
     double num_rev_r;
     double num_rev_l;

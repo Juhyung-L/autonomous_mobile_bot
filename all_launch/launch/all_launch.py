@@ -13,7 +13,7 @@ def generate_launch_description():
     microcont_pkg_share = get_package_share_directory('microcontroller_interface')
 
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
-    robot_model_path = os.path.join(pkg_share, 'urdf', 'lidar_imu.urdf')
+    robot_model_path = os.path.join(pkg_share, 'urdf', 'lidar.urdf')
     
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')

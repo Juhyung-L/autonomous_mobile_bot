@@ -10,13 +10,5 @@
         <child link="laser"/>
         <origin xyz="0 0 0" rpy="0 0 ${pi/2}"/>
     </joint>
-    
-    <link name="imu"/>
-
-    <joint name="imu_joint" type="fixed">
-        <parent link="base_footprint"/>
-        <child link="imu"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-    </joint>
 
 </robot>
