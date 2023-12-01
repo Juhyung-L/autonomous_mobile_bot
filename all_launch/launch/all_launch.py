@@ -13,12 +13,14 @@ def generate_launch_description():
     microcont_pkg_share = get_package_share_directory('microcontroller_interface')
 
     nav2_params_path = os.path.join(pkg_share, 'config', 'nav2_params.yaml')
+    robot_model_path = os.path.join(pkg_share, 'urdf', 'lidar_imu.urdf')
     
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     autostart = LaunchConfiguration('autostart')
     serial_port_lidar = LaunchConfiguration('serial_port_lidar', default='/dev/ttyUSB0')
     serial_port_arduino = LaunchConfiguration('serial_port_arduino', default='/dev/ttyUSB1') 
+    robot_model_file = LaunchConfiguration('robot_model_file')
     
     delcare_use_sim_time = DeclareLaunchArgument(
         name='use_sim_time',
@@ -44,6 +46,11 @@ def generate_launch_description():
         name='serial_port_arduino',
         default_value=serial_port_arduino,
         description='Specifying usb port to connected arduino'
+    )
+    declare_robot_model_file = DeclareLaunchArgument(
+        name='robot_model_file',
+        default_value=robot_model_path,
+        description='Path to URDF for publishing static transform for LiDAR and IMU'
     )
 
     # launch nav2
@@ -72,14 +79,25 @@ def generate_launch_description():
         }.items()
     )
 
+    # launch robot state publisher
+    robot_state_publisher = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(pkg_share, 'launch', 'robot_state_publisher.launch.py')),
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'robot_model_file': robot_model_file
+        }.items()
+    )
+
     return LaunchDescription([
         delcare_use_sim_time,
         declare_params_file,
         declare_autostart,
         declare_serial_port_lidar,
         declare_serial_port_arduino,
-
-        nav2_launch,
+        declare_robot_model_file,
+        
+        robot_state_publisher,
+        real_odom_launch,
         rplidar_launch,
-        real_odom_launch
+        nav2_launch
     ])
