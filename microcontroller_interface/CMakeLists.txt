@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -46,6 +46,15 @@ add_executable(pid_motor_control src/pid_motor_control.cpp)
 ament_target_dependencies(pid_motor_control ${pid_motor_control_dependencies})
 target_link_libraries(pid_motor_control ${GPIO_LIBRARY})
 
+# for debugging
+add_executable(test_pwm src/test_pwm.cpp)
+target_link_libraries(test_pwm ${GPIO_LIBRARY})
+
+add_executable(debug_odom_imu_node src/debug_odom_imu_node.cpp)
+ament_target_dependencies(debug_odom_imu_node ${odom_imu_node_dependencies})
+target_link_libraries(debug_odom_imu_node ${SERIAL_LDFLAGS})
+target_link_directories(debug_odom_imu_node PRIVATE ${SERIAL_INCLUDE_DIRS})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -61,6 +70,8 @@ endif()
 INSTALL(TARGETS
   odom_imu_node
   pid_motor_control
+  test_pwm
+  debug_odom_imu_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

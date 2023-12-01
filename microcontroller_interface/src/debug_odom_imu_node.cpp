@@ -64,7 +64,9 @@ int main(int argc, char* argv[])
     odom.header.frame_id = "odom";
     odom.child_frame_id = "base_footprint";
     imu.header.frame_id = "base_footprint";
-
+    
+    double total_num_rev_r = 0;
+    double total_num_rev_l = 0;
     double num_rev_r;
     double num_rev_l;
     double ang_vel_r;
@@ -144,6 +146,15 @@ int main(int argc, char* argv[])
 
             odom_pub->publish(odom);
             imu_pub->publish(imu);
+	    
+	    // yaw (z-axis rotation)
+            double siny_cosp = 2 * (imu.orientation.w * imu.orientation.z + imu.orientation.x * imu.orientation.y);
+            double cosy_cosp = 1 - 2 * (imu.orientation.y * imu.orientation.y + imu.orientation.z * imu.orientation.z);
+            double imu_yaw = std::atan2(siny_cosp, cosy_cosp);
+	    std::cout << "Odom yaw: " << yaw << "\tIMU yaw: " << imu_yaw
+	              << "\tRev_r: " << total_num_rev_r << "\tRev_l: " << total_num_rev_l << std::endl;
+	    total_num_rev_r += num_rev_r;
+	    total_num_rev_l += num_rev_l;
         } 
         catch (const ReadTimeout&) 
         {

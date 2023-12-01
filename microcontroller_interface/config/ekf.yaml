@@ -44,4 +44,4 @@ ekf_filter_node:
                       true,  true,  true,
                       false, false, false,
                       false, false, false,
-                      false, false, false]
+                      true, true, true]

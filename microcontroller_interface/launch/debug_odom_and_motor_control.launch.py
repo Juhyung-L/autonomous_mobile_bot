@@ -38,8 +38,8 @@ def generate_launch_description():
 
     odom_imu_node = Node(
         package='microcontroller_interface',
-        executable='odom_imu_node',
-        name='odom_imu_node',
+        executable='debug_odom_imu_node',
+        name='debug_odom_imu_node',
         output='screen',
         parameters=[
             {'serial_port': serial_port}

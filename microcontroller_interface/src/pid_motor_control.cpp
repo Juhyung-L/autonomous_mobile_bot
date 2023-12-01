@@ -18,7 +18,7 @@
 #define BIN1 20
 #define BIN2 21
 
-#define PWM_FREQ 500
+#define PWM_FREQ 100
 
 #define CHECK_HANDLE(handle) \
     do { \

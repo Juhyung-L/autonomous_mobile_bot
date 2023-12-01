@@ -1,6 +1,7 @@
 #include <lgpio.h>
 #include <csignal>
 #include <unistd.h>
+#include <iostream>
 
 // left wheel PWM pin
 #define ENA 6
@@ -13,7 +14,8 @@
 #define BIN1 20
 #define BIN2 21
 
-#define PWM_FREQ 500
+#define PWM_FREQ 100
+#define DUTY_CYCLE 50
 
 #define CHECK_HANDLE(handle) \
     do { \
@@ -71,8 +73,8 @@ int main(int argc, char* argv[])
     lgGpioWrite(h, BIN2, 1);
     lgGpioWrite(h, AIN1, 0);
     lgGpioWrite(h, AIN2, 1);
-    lgTxPwm(h, ENB, 50, 0, 0);
-    lgTxPwm(h, ENA, 50, 0, 0);
+    lgTxPwm(h, ENB, PWM_FREQ, DUTY_CYCLE, 0, 0);
+    lgTxPwm(h, ENA, PWM_FREQ, DUTY_CYCLE, 0, 0);
 
     while (true)
     {
