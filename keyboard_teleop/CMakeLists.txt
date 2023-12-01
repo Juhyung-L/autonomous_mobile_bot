@@ -18,9 +18,9 @@ set(dependencies
 
 include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(keyboard_teleop src/main.cpp)
-ament_target_dependencies(keyboard_teleop ${dependencies})
-target_link_libraries(keyboard_teleop ${SDL2_LIBRARIES})
+add_executable(main src/main.cpp)
+ament_target_dependencies(main ${dependencies})
+target_link_libraries(main ${SDL2_LIBRARIES})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -35,7 +35,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS 
-  keyboard_teleop
+  main
   DESTINATION lib/${PROJECT_NAME}
 )
 

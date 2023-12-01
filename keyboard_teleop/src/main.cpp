@@ -16,18 +16,18 @@ int main(int argc, char** argv) {
   rclcpp::init(argc,argv);
 
   auto node_ = rclcpp::Node::make_shared("keyboard_teleop");
-  node_->declare_parameter("default_linear_velocity", 1.0);
-  node_->declare_parameter("default_angular_velocity", 1.0);
+  node_->declare_parameter("vx", 1.0);
+  node_->declare_parameter("vyaw", 1.0);
   node_->declare_parameter("twist_topic", "/cmd_vel");
   
   std::string twist_topic;
   node_->get_parameter("twist_topic", twist_topic);
   auto pub_ = node_->create_publisher<geometry_msgs::msg::Twist>(twist_topic, 10);
   
-  double default_vx;
-  double default_vtheta;
-  node_->get_parameter("default_linear_velocity", default_vx);
-  node_->get_parameter("default_angular_velocity", default_vtheta);
+  double vx;
+  double vyaw;
+  node_->get_parameter("vx", vx);
+  node_->get_parameter("vyaw", vyaw);
 
   geometry_msgs::msg::Twist robot_vel;
   SDL_Event event;
@@ -73,16 +73,16 @@ int main(int argc, char** argv) {
                 switch(event.key.keysym.sym)
                 {
                   case SDLK_w:
-                      robot_vel.linear.x = default_vx;
+                      robot_vel.linear.x = vx;
                       break;
                   case SDLK_a:
-                      robot_vel.angular.z = default_vtheta;
+                      robot_vel.angular.z = vyaw;
                       break;
                   case SDLK_s:
-                      robot_vel.linear.x = -default_vx;
+                      robot_vel.linear.x = -vx;
                       break;
                   case SDLK_d:
-                      robot_vel.angular.z = -default_vtheta;
+                      robot_vel.angular.z = -vyaw;
                       break;
                   default:
                       break;
